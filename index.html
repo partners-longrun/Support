@@ -261,7 +261,11 @@
             adminPage: 1,
             pageSize: 20,
             mobileMenuOpen: false,
-            isLoading: false
+            isLoading: false,
+            // Fee System State
+            feeTab: 'active', // 'active' or 'resigned'
+            feeKeyword: '',
+            feeDataLoaded: false
         };
 
         var LOGO_TEXT = `<div class="flex items-center gap-2 select-none">
@@ -717,6 +721,7 @@
                                     ${navLink('dashboard', '시상금')}
                                     ${state.user.isRecruiter ? navLink('recruitment', '증원수당') : ''}
                                     ${state.user.role === '지사대표' ? navLink('branch', '지사대표') : ''}
+                                    ${state.user.role === '지사대표' ? navLink('fee', '수수료') : ''}
                                     ${(state.user.role === '지사대표' || state.user.role === '관리자') ? navLink('admin', '관리자') : ''}
                                     ${(state.user.role === '지사대표' || state.user.role === '실장' || state.user.role === '운영진') ? navLink('lapseAdmin', '실효연체관리') : ''}
                                     ${(state.user.role === '지사대표' || state.user.role === '실장' || state.user.role === '운영진') ? navLink('retentionAdmin', '유지율') : ''}
@@ -767,6 +772,7 @@
                             <a href="#" data-nav="dashboard" class="block px-3 py-3 rounded-xl text-base font-medium ${state.currentView === 'dashboard' ? 'bg-orange-50 text-primary' : 'text-gray-600 hover:bg-gray-50'}">시상금</a>
                             ${state.user.isRecruiter ? `<a href="#" data-nav="recruitment" class="block px-3 py-3 rounded-xl text-base font-medium ${state.currentView === 'recruitment' ? 'bg-orange-50 text-primary' : 'text-gray-600 hover:bg-gray-50'}">증원수당</a>` : ''}
                             ${state.user.role === '지사대표' ? `<a href="#" data-nav="branch" class="block px-3 py-3 rounded-xl text-base font-medium ${state.currentView === 'branch' ? 'bg-orange-50 text-primary' : 'text-gray-600 hover:bg-gray-50'}">지사대표</a>` : ''}
+                            ${state.user.role === '지사대표' ? `<a href="#" data-nav="fee" class="block px-3 py-3 rounded-xl text-base font-medium ${state.currentView === 'fee' ? 'bg-orange-50 text-primary' : 'text-gray-600 hover:bg-gray-50'}">수수료</a>` : ''}
                             ${(state.user.role === '지사대표' || state.user.role === '관리자') ? `<a href="#" data-nav="admin" class="block px-3 py-3 rounded-xl text-base font-medium ${state.currentView === 'admin' ? 'bg-orange-50 text-primary' : 'text-gray-600 hover:bg-gray-50'}">관리자</a>` : ''}
                             ${(state.user.role === '지사대표' || state.user.role === '실장' || state.user.role === '운영진') ? `<a href="#" data-nav="lapseAdmin" class="block px-3 py-3 rounded-xl text-base font-medium ${state.currentView === 'lapseAdmin' ? 'bg-orange-50 text-primary' : 'text-gray-600 hover:bg-gray-50'}">실효연체관리</a>` : ''}
                             ${(state.user.role === '지사대표' || state.user.role === '실장' || state.user.role === '운영진') ? `<a href="#" data-nav="retentionAdmin" class="block px-3 py-3 rounded-xl text-base font-medium ${state.currentView === 'retentionAdmin' ? 'bg-orange-50 text-primary' : 'text-gray-600 hover:bg-gray-50'}">유지율</a>` : ''}
@@ -804,6 +810,7 @@
             else if (state.currentView === 'dashboard') main.appendChild(createDashboardView());
             else if (state.currentView === 'recruitment') main.appendChild(createRecruitmentView());
             else if (state.currentView === 'branch') main.appendChild(createBranchView());
+            else if (state.currentView === 'fee') main.appendChild(createFeeView());
             else if (state.currentView === 'admin') main.appendChild(createAdminView());
             else if (state.currentView === 'lapseAdmin') main.appendChild(createLapseAdminView());
             else if (state.currentView === 'retentionAdmin') main.appendChild(createRetentionAdminView());
@@ -2072,6 +2079,7 @@
             else if (state.currentView === 'dashboard' || state.currentView === 'branch') fetchReward(cacheKey);
             else if (state.currentView === 'recruitment') fetchRec(cacheKey);
             else if (state.currentView === 'admin') fetchAdmin(cacheKey);
+            else if (state.currentView === 'fee') fetchFee(cacheKey);
         }
 
         async function fetchHome(key) {
@@ -2134,6 +2142,21 @@
             state.data.adminSummary = parsed;
             if (!parsed.error && key) sessionStorage.setItem(key, JSON.stringify(parsed));
             render();
+        }
+
+        async function fetchFee(key) {
+            state.isLoading = true; render();
+            const d = await callApi('getFeeDashboardData', state.currentMonth);
+            state.isLoading = false;
+
+            if (!d.error && d.success) {
+                state.data.feeSummary = d;
+                sessionStorage.setItem(key, JSON.stringify(d));
+                render();
+            } else {
+                alert('수수료 요약 데이터 로드 실패: ' + (d.message || '알 수 없는 오류'));
+                render();
+            }
         }
 
         // --- 8.5 Background Pre-fetcher ---
@@ -2219,7 +2242,324 @@
             }
         });
 
-        // --- 10. Initialization ---
+        // --- 11. Fee Query View (지사대표 수수료 조회) ---
+        window.switchFeeTab = function(tab) {
+            state.feeTab = tab;
+            state.feeKeyword = '';
+            const sec = document.getElementById('fee-list-section');
+            if (sec) {
+               sec.innerHTML = `<div class="text-center py-12 text-gray-500 text-sm">리스트를 보려면 검색 또는 '전체보기'를 클릭하세요.</div>`;
+            }
+            
+            const btnActive = document.getElementById('fee-tab-active');
+            const btnResigned = document.getElementById('fee-tab-resigned');
+            
+            if (tab === 'active') {
+                if(btnActive) btnActive.className = 'flex-1 py-3 text-sm font-bold bg-white text-primary shadow-sm rounded-xl transition';
+                if(btnResigned) btnResigned.className = 'flex-1 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 transition';
+            } else {
+                if(btnActive) btnActive.className = 'flex-1 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 transition';
+                if(btnResigned) btnResigned.className = 'flex-1 py-3 text-sm font-bold bg-white text-orange-600 shadow-sm rounded-xl transition';
+            }
+        };
+
+        window.loadFeeList = async function(isAll = false) {
+            const kwInput = document.getElementById('fee-search-input');
+            const keyword = isAll ? '' : (kwInput ? kwInput.value.trim() : '');
+            
+            if (!isAll && !keyword) {
+               alert('검색어를 입력해주세요.');
+               kwInput.focus();
+               return;
+            }
+
+            state.feeKeyword = keyword;
+            const isResigned = state.feeTab === 'resigned';
+            const cacheKey = 'fee_list_' + state.currentMonth + '_' + (isResigned ? 'R' : 'A') + '_' + keyword;
+            
+            // Check session storage cache
+            const cached = sessionStorage.getItem(cacheKey);
+            if (cached) {
+                try {
+                    renderFeeList(JSON.parse(cached));
+                    return;
+                } catch(e) {}
+            }
+
+            showLoading(true);
+            const d = await callApi('getFeeCommissionList', state.currentMonth, isResigned, keyword);
+            showLoading(false);
+
+            if (d.error || !d.success) {
+                alert('데이터 로드 실패: ' + (d.message || '오류 발생'));
+                return;
+            }
+
+            sessionStorage.setItem(cacheKey, JSON.stringify(d.data));
+            renderFeeList(d.data);
+        };
+
+        window.feeSearchEnter = function(e) {
+            if (e.key === 'Enter') loadFeeList(false);
+        };
+
+        function renderFeeList(data) {
+            const container = document.getElementById('fee-list-section');
+            if (!container) return;
+
+            if (!data || data.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center text-gray-400">
+                        <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p class="text-sm font-medium">검색 결과가 없습니다.</p>
+                    </div>`;
+                return;
+            }
+
+            let html = `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-left text-sm whitespace-nowrap"><thead class="bg-gray-50 text-gray-500 font-medium"><tr>
+                <th class="px-3 md:px-4 py-3 border-b text-center font-bold">구분</th><th class="px-3 md:px-4 py-3 border-b border-l text-center font-bold">생보</th><th class="px-3 md:px-4 py-3 border-b border-l text-center font-bold">손보</th><th class="px-3 md:px-4 py-3 border-b border-l text-center font-bold">관리수당</th><th class="px-3 md:px-4 py-3 border-b text-center bg-gray-100 font-bold border-l">지급합계</th>
+            </tr></thead><tbody class="divide-y divide-gray-100">`;
+
+            data.forEach((row, i) => {
+                const totalPay = (row.life.payment || 0) + (row.damage.payment || 0) + (row.total.managePayment || 0);
+                const totalRef = (row.life.refund || 0) + (row.damage.refund || 0) + (row.total.manageRefund || 0);
+
+                html += `
+                    <tr class="${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} hover:bg-orange-50/30 transition-colors">
+                        <td class="px-3 md:px-4 py-3 font-bold text-gray-900 border-r text-center align-middle relative">
+                            ${row.name}<br>
+                            <span class="text-[10px] text-gray-400 font-normal">(${row.employeeId})</span>
+                        </td>
+                        <td class="px-3 md:px-4 py-3 border-r align-middle">
+                            <div class="flex flex-col gap-1 text-right text-xs">
+                                ${row.life.payment ? `<div class="text-blue-600 font-medium cursor-pointer hover:underline" onclick="openFeeDetailModal('${row.employeeId}','${row.name}','life','payment')">지급 ${formatMoney(Math.round(row.life.payment))}</div>` : '<div class="text-gray-300">-</div>'}
+                                ${row.life.refund ? `<div class="text-red-500 font-medium cursor-pointer hover:underline" onclick="openFeeDetailModal('${row.employeeId}','${row.name}','life','refund')">환수 ${formatMoney(Math.round(row.life.refund))}</div>` : ''}
+                            </div>
+                        </td>
+                        <td class="px-3 md:px-4 py-3 border-r align-middle">
+                            <div class="flex flex-col gap-1 text-right text-xs">
+                                ${row.damage.payment ? `<div class="text-blue-600 font-medium cursor-pointer hover:underline" onclick="openFeeDetailModal('${row.employeeId}','${row.name}','damage','payment')">지급 ${formatMoney(Math.round(row.damage.payment))}</div>` : '<div class="text-gray-300">-</div>'}
+                                ${row.damage.refund ? `<div class="text-red-500 font-medium cursor-pointer hover:underline" onclick="openFeeDetailModal('${row.employeeId}','${row.name}','damage','refund')">환수 ${formatMoney(Math.round(row.damage.refund))}</div>` : ''}
+                            </div>
+                        </td>
+                        <td class="px-3 md:px-4 py-3 border-r align-middle bg-gray-50/30">
+                            <div class="flex flex-col gap-1 text-right text-xs">
+                                ${row.total.managePayment ? `<div class="text-blue-600 font-medium cursor-pointer hover:underline" onclick="openFeeDetailModal('${row.employeeId}','${row.name}','manage','payment')">지급 ${formatMoney(Math.round(row.total.managePayment))}</div>` : '<div class="text-gray-300">-</div>'}
+                                ${row.total.manageRefund ? `<div class="text-red-500 font-medium cursor-pointer hover:underline" onclick="openFeeDetailModal('${row.employeeId}','${row.name}','manage','refund')">환수 ${formatMoney(Math.round(row.total.manageRefund))}</div>` : ''}
+                            </div>
+                        </td>
+                        <td class="px-3 md:px-4 py-3 text-right border-l-2 border-gray-100 bg-gray-50/50 align-middle">
+                            <div class="flex flex-col gap-1">
+                                <div class="font-bold text-blue-600 text-sm tracking-tight">${formatMoney(Math.round(totalPay))}</div>
+                                ${totalRef > 0 ? `<div class="font-medium text-red-500 text-xs">${formatMoney(Math.round(totalRef))} (환수)</div>` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table></div></div>`;
+            container.innerHTML = html;
+        }
+
+        function createFeeView() {
+            if (state.isLoading) return getSkeletonUI();
+            
+            const div = document.createElement('div');
+            const p = state.data.feeSummary || {};
+            
+            div.innerHTML = `
+                <div class="mb-4">
+                    <h2 class="text-xl font-bold text-gray-800 tracking-tight">수수료 조회</h2>
+                    <p class="text-gray-500 text-sm mt-1">${state.currentMonth || '-'} 마감월 기준 지사의 수수료 요약 및 위촉자/해촉자 개별 리스트입니다.</p>
+                </div>
+                
+                <!-- 요약 대시보드 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                        <div class="text-sm font-medium text-gray-500 mb-1">총 지급액</div>
+                        <div class="text-2xl font-bold text-blue-600">${p.total?.payment?.total ? formatMoney(Math.round(p.total.payment.total)) : '0'} <span class="text-base text-gray-500 font-normal">원</span></div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                        <div class="text-sm font-medium text-gray-500 mb-1">총 환수액</div>
+                        <div class="text-2xl font-bold text-red-500">${p.total?.refund?.total ? formatMoney(Math.round(p.total.refund.total)) : '0'} <span class="text-base text-gray-500 font-normal">원</span></div>
+                    </div>
+                    <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-5 shadow-sm border border-orange-200 lg:col-span-2">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-sm font-bold text-orange-800 mb-1">지사 차액수수료계</div>
+                                <div class="flex gap-4">
+                                    <div><span class="text-xs text-orange-600 mr-1">지급</span><span class="text-xl font-bold text-orange-900">${p.branch?.payment ? formatMoney(Math.round(p.branch.payment)) : '0'}</span></div>
+                                    <div class="border-l border-orange-200 pl-4"><span class="text-xs text-red-500 mr-1">환수</span><span class="text-xl font-bold text-red-600">${p.branch?.refund ? formatMoney(Math.round(p.branch.refund)) : '0'}</span></div>
+                                </div>
+                            </div>
+                            <div class="w-10 h-10 rounded-full bg-orange-200/50 flex items-center justify-center text-orange-600">
+                                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 탭 및 검색 -->
+                <div class="bg-gray-100 p-1.5 rounded-2xl flex mb-4 max-w-sm mx-auto md:mx-0">
+                    <button id="fee-tab-active" onclick="switchFeeTab('active')" class="flex-1 py-3 text-sm font-bold bg-white text-primary shadow-sm rounded-xl transition">위촉자 리스트</button>
+                    <button id="fee-tab-resigned" onclick="switchFeeTab('resigned')" class="flex-1 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 transition">해촉자 리스트</button>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row gap-3 mb-4">
+                    <div class="relative flex-grow max-w-sm mx-auto md:mx-0">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </div>
+                        <input type="text" id="fee-search-input" placeholder="이름 또는 사번 검색" onkeyup="feeSearchEnter(event)"
+                            class="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition sm:text-sm">
+                    </div>
+                    <div class="flex gap-2 max-w-sm mx-auto md:mx-0 w-full sm:w-auto">
+                        <button onclick="loadFeeList(false)" class="flex-1 sm:flex-none px-5 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-xl hover:bg-gray-900 transition shadow-sm">검색</button>
+                        <button onclick="loadFeeList(true)" class="flex-1 sm:flex-none px-5 py-2.5 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-50 transition shadow-sm">전체보기</button>
+                    </div>
+                </div>
+
+                <div id="fee-list-section" class="min-h-[300px]">
+                    <div class="text-center py-12 text-gray-500 text-sm">리스트를 보려면 검색 또는 '전체보기'를 클릭하세요.</div>
+                </div>
+            `;
+            
+            // Restore tab state if navigating back
+            setTimeout(() => {
+                if(state.feeTab === 'resigned') switchFeeTab('resigned');
+            }, 0);
+
+            return div;
+        }
+
+        // --- 12. Fee Query Detail Modal ---
+        window.openFeeDetailModal = async function(employeeId, name, type, mode) {
+            const modalId = 'fee-detail-modal';
+            let modal = document.getElementById(modalId);
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = modalId;
+                modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4';
+                modal.innerHTML = `
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl flex flex-col transform transition-all scale-100 animate-fadeIn h-[90vh] md:h-auto md:max-h-[85vh]">
+                        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 rounded-t-2xl">
+                            <div>
+                                <h3 id="fd-title" class="text-lg font-bold text-gray-900">상세내역</h3>
+                                <p id="fd-subtitle" class="text-xs text-gray-500 mt-1"></p>
+                            </div>
+                            <button onclick="closeFeeDetailModal()" class="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-200 transition">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                        <div id="fd-content" class="p-6 overflow-y-auto flex-grow relative bg-gray-50" onscroll="handleFeeModalScroll()">
+                            <div class="flex items-center justify-center h-32">
+                                <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                        </div>
+                        <button id="fd-top-btn" onclick="scrollToFeeModalTop()" class="hidden absolute bottom-6 right-6 p-3 bg-gray-800 hover:bg-black text-white rounded-full shadow-lg transition-all z-10 opacity-70 hover:opacity-100">
+                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                        </button>
+                    </div>`;
+                document.body.appendChild(modal);
+            }
+
+            // Set Title
+            let tName = type === 'life' ? '생보' : (type === 'damage' ? '손보' : '관리수당');
+            let mName = mode === 'payment' ? '지급' : '환수';
+            document.getElementById('fd-title').innerHTML = `<span class="text-primary">${name}</span>님 ${tName} <span class="${mode==='payment'?'text-blue-600':'text-red-500'}">${mName}</span> 내역`;
+            document.getElementById('fd-subtitle').textContent = `마감월: ${state.currentMonth} | 사번: ${employeeId}`;
+            
+            document.getElementById('fd-content').innerHTML = `
+                <div class="flex items-center justify-center h-40">
+                    <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                </div>`;
+            
+            modal.classList.remove('hidden');
+            document.body.classList.add('modal-open');
+
+            const cacheKey = 'fee_det_' + state.currentMonth + '_' + employeeId + '_' + type + '_' + mode;
+            
+            // Check session storage cache
+            const cached = sessionStorage.getItem(cacheKey);
+            if (cached) {
+                try {
+                    renderFeeDetailTable(JSON.parse(cached), mode);
+                    return;
+                } catch(e) {}
+            }
+
+            const d = await callApi('getFeeCommissionDetail', state.currentMonth, employeeId, type, mode);
+            
+            if (d.error || !d.success) {
+                document.getElementById('fd-content').innerHTML = `<div class="text-center py-10 text-red-500 font-medium whitespace-nowrap">${d.message || '오류 발생'}</div>`;
+                return;
+            }
+
+            sessionStorage.setItem(cacheKey, JSON.stringify(d.data));
+            renderFeeDetailTable(d.data, mode);
+        };
+
+        window.closeFeeDetailModal = function() {
+            const modal = document.getElementById('fee-detail-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                document.body.classList.remove('modal-open');
+            }
+        };
+
+        window.handleFeeModalScroll = function() {
+            const content = document.getElementById('fd-content');
+            const topBtn = document.getElementById('fd-top-btn');
+            if (content && topBtn) {
+                if (content.scrollTop > 100) topBtn.classList.remove('hidden');
+                else topBtn.classList.add('hidden');
+            }
+        };
+
+        window.scrollToFeeModalTop = function() {
+            const content = document.getElementById('fd-content');
+            if (content) content.scrollTo({top: 0, behavior: 'smooth'});
+        };
+
+        function renderFeeDetailTable(data, mode) {
+            const content = document.getElementById('fd-content');
+            if (!data || data.length === 0) {
+                content.innerHTML = `<div class="text-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-100">조회된 상세 내역이 없습니다.</div>`;
+                return;
+            }
+
+            let html = `<div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-left text-xs whitespace-nowrap"><thead class="bg-gray-100/50 text-gray-600 font-medium"><tr>
+                <th class="px-3 py-3 border-b border-r text-center font-bold min-w-[80px]">보험사</th>
+                <th class="px-3 py-3 border-b border-r text-center font-bold">증권번호</th>
+                <th class="px-3 py-3 border-b border-r text-center font-bold">계약일</th>
+                <th class="px-3 py-3 border-b border-r text-center font-bold">상태</th>
+                <th class="px-3 py-3 border-b border-r text-center font-bold">보험료</th>
+                <th class="px-3 py-3 border-b border-r text-center font-bold">계약자</th>
+                <th class="px-4 py-3 border-b text-right font-bold tracking-widest text-gray-800 ${mode==='payment'?'bg-blue-50/30':'bg-red-50/30'}">수수료</th>
+            </tr></thead><tbody class="divide-y divide-gray-100">`;
+
+            data.forEach((row, i) => {
+                html += `
+                    <tr class="${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'} hover:bg-gray-100 transition-colors">
+                        <td class="px-3 py-2 border-r text-center text-gray-700 truncate max-w-[100px]" title="${row.company}">${row.company}</td>
+                        <td class="px-3 py-2 border-r text-center font-medium text-gray-800">${row.policyNo}</td>
+                        <td class="px-3 py-2 border-r text-center text-gray-500">${row.contractDate}</td>
+                        <td class="px-3 py-2 border-r text-center"><span class="px-2 py-0.5 rounded text-[10px] bg-gray-100 text-gray-600">${row.status}</span></td>
+                        <td class="px-3 py-2 border-r text-right font-medium text-gray-600">${formatMoney(row.premium)}</td>
+                        <td class="px-3 py-2 border-r text-center font-medium text-gray-800">${row.contractor}</td>
+                        <td class="px-4 py-2 text-right font-bold ${mode==='payment'?'text-blue-600':'text-red-500'} bg-gray-50/20">${formatMoney(Math.abs(Math.round(row.commission)))}</td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table></div></div>`;
+            content.innerHTML = html;
+        }
+
+        // --- 13. Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
             // Check if already on a specific route without session
             if (restoreSession()) {
