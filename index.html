@@ -1156,45 +1156,162 @@
         function createBranchView() {
             if (state.isLoading) return getSkeletonUI();
             const div = document.createElement('div');
+
+            // 시상금 데이터
             const d = state.data.rewardData?.summary || {};
-            // 백엔드의 getRewardData 함수 정의에 맞춰 다시 롤백
-            const keys = ['손보 법인시상금', '생보 법인시상금', '2차년 인센티브'];
-            let totalPay = 0, totalRef = 0;
-            keys.forEach(k => { const obj = d[k] || { pay: 0, refund: 0 }; totalPay += obj.pay; totalRef += obj.refund; });
-            const net = totalPay + totalRef;
+            const rewardKeys = ['손보 법인시상금', '생보 법인시상금', '2차년 인센티브'];
+            let rewardPay = 0, rewardRefund = 0;
+            rewardKeys.forEach(k => { const o = d[k] || { pay: 0, refund: 0 }; rewardPay += o.pay; rewardRefund += o.refund; });
+            const rewardNet = rewardPay + rewardRefund;
 
-            const card = (label, val, color, isRed = false, big = false) => `
-              <div class="bg-white rounded-2xl shadow-sm p-6 border-l-4 ${color} flex flex-col justify-between h-full items-center text-center">
-                 <p class="text-gray-400 text-xs w-full text-center font-bold uppercase">${label}</p>
-                 <p class="${big ? 'text-2xl' : 'text-xl'} font-extrabold ${isRed || (val < 0) ? 'text-red-500' : 'text-gray-800'} mt-3 px-2">${formatMoney(val)}</p>
-              </div>`;
+            // 수수료 데이터
+            const c = state.data.branchCommData || {};
+            const commLoaded = !!state.data.branchCommData;
+            const nonLifePay = c.nonLifePay || 0;
+            const nonLifeRefund = c.nonLifeRefund || 0;
+            const lifePay = c.lifePay || 0;
+            const lifeRefund = c.lifeRefund || 0;
+            const commNet = nonLifePay + nonLifeRefund + lifePay + lifeRefund;
+            const commTotalPay = nonLifePay + lifePay;
+            const commTotalRefund = nonLifeRefund + lifeRefund;
 
-            const detailCard = (title, key) => {
+            // 전체 합산
+            const grandNet = commNet + rewardNet;
+
+            // 스피너 HTML
+            const spinner = `<svg class="animate-spin w-5 h-5 text-gray-300 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+
+            // 완전한 상단 3개 요약카드 (큰 복합 카드)
+            const summaryCard = (title, totalAmt, sub1Label, sub1Amt, sub2Label, sub2Amt, accentColor, loaded) => `
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col h-full">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">${title}</p>
+                            <p class="text-2xl font-extrabold mt-1 ${Number(totalAmt) < 0 ? 'text-red-500' : 'text-gray-800'} tracking-tight">
+                                ${loaded ? formatMoney(totalAmt) : spinner}
+                            </p>
+                        </div>
+                        <span class="w-2 h-8 ${accentColor} rounded-full mt-1"></span>
+                    </div>
+                    <div class="mt-auto pt-3 border-t border-gray-50 grid grid-cols-2 gap-2 text-center">
+                        <div>
+                            <p class="text-[10px] text-gray-400 font-semibold mb-0.5">${sub1Label}</p>
+                            <p class="text-sm font-bold ${Number(sub1Amt) < 0 ? 'text-red-500' : 'text-gray-700'}">${loaded ? formatMoney(sub1Amt) : spinner}</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-gray-400 font-semibold mb-0.5">${sub2Label}</p>
+                            <p class="text-sm font-bold ${Number(sub2Amt) < 0 ? 'text-red-500' : 'text-gray-700'}">${loaded ? formatMoney(sub2Amt) : spinner}</p>
+                        </div>
+                    </div>
+                </div>`;
+
+            // 수수료 상세 카드 (지급/환수)
+            const commDetailCard = (title, pay, refund, loaded) => {
+                const net = pay + refund;
+                return `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col h-full">
+                    <div class="flex justify-between mb-4 border-b border-gray-50 pb-3 items-center">
+                        <h3 class="font-bold text-base text-gray-800 flex items-center gap-2">
+                            <div class="w-1.5 h-1.5 rounded-full bg-primary/50"></div>${title}
+                        </h3>
+                        <span class="text-base font-bold ${net < 0 ? 'text-red-600' : 'text-gray-800'}">${loaded ? formatMoney(net) : spinner}</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 text-center mt-auto">
+                        <div class="p-2.5 bg-blue-50/50 rounded-xl border border-blue-100/50">
+                            <p class="text-[10px] text-gray-400 font-bold uppercase mb-1">지급</p>
+                            <p class="text-base font-bold text-blue-600">${loaded ? formatMoney(pay) : spinner}</p>
+                        </div>
+                        <div class="p-2.5 bg-red-50/50 rounded-xl border border-red-100/50">
+                            <p class="text-[10px] text-gray-400 font-bold uppercase mb-1">환수</p>
+                            <p class="text-base font-bold text-red-500">${loaded ? formatMoney(refund) : spinner}</p>
+                        </div>
+                    </div>
+                </div>`;
+            };
+
+            // 기존 시상금 상세 카드
+            const rewardDetailCard = (title, key) => {
                 const obj = d[key] || { pay: 0, refund: 0 };
                 const subTotal = obj.pay + obj.refund;
-                return `<div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-                 <div class="flex justify-between mb-4 border-b border-gray-50 pb-2 items-center">
-                     <h3 class="font-bold text-lg text-gray-800 flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-primary/50"></div>${title}</h3>
-                     <span class="text-lg font-bold ${subTotal < 0 ? 'text-red-600' : 'text-gray-800'}">${formatMoney(subTotal)}</span>
-                 </div>
-                 <div class="grid grid-cols-2 gap-4 text-center">
-                    <div class="cursor-pointer hover:bg-gray-50 p-2 rounded-xl transition" onclick="openDetail('${key}','pay')"><p class="text-[10px] text-gray-400 font-bold uppercase">지급</p><p class="text-lg font-bold text-blue-600">${formatMoney(obj.pay)}</p></div>
-                    <div class="cursor-pointer hover:bg-gray-50 p-2 rounded-xl transition" onclick="openDetail('${key}','refund')"><p class="text-[10px] text-gray-400 font-bold uppercase">환수</p><p class="text-lg font-bold text-red-500">${formatMoney(obj.refund)}</p></div>
-                 </div></div>`;
+                return `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                    <div class="flex justify-between mb-4 border-b border-gray-50 pb-3 items-center">
+                        <h3 class="font-bold text-base text-gray-800 flex items-center gap-2">
+                            <div class="w-1.5 h-1.5 rounded-full bg-primary/50"></div>${title}
+                        </h3>
+                        <span class="text-base font-bold ${subTotal < 0 ? 'text-red-600' : 'text-gray-800'}">${formatMoney(subTotal)}</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 text-center">
+                        <div class="cursor-pointer hover:bg-blue-50/50 p-2.5 rounded-xl transition border border-transparent hover:border-blue-100 group" onclick="openDetail('${key}','pay')">
+                            <p class="text-[10px] text-gray-400 font-bold uppercase mb-1">지급</p>
+                            <p class="text-base font-bold text-blue-600 group-hover:scale-105 transition-transform">${formatMoney(obj.pay)}</p>
+                        </div>
+                        <div class="cursor-pointer hover:bg-red-50/50 p-2.5 rounded-xl transition border border-transparent hover:border-red-100 group" onclick="openDetail('${key}','refund')">
+                            <p class="text-[10px] text-gray-400 font-bold uppercase mb-1">환수</p>
+                            <p class="text-base font-bold text-red-500 group-hover:scale-105 transition-transform">${formatMoney(obj.refund)}</p>
+                        </div>
+                    </div>
+                </div>`;
             };
 
             div.innerHTML = `
-            <div class="mb-6"><h2 class="text-xl font-bold text-gray-800">지사대표의 시상금 (${state.currentMonth})</h2><p class="text-sm text-gray-500">법인 시상 및 인센티브 현황</p></div>
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-                <div class="col-span-2 md:col-span-1">${card('실지급 총액', net, 'border-primary', false, true)}</div>
-                <div class="col-span-1">${card('총 지급액', totalPay, 'border-blue-500')}</div>
-                <div class="col-span-1">${card('총 환수액', totalRef, 'border-red-500', true)}</div>
+            <div class="mb-6">
+                <h2 class="text-xl font-bold text-gray-800">지사의 수수료와 시상금 (${state.currentMonth})</h2>
+                <p class="text-sm text-gray-500 mt-1">지사 수수료 및 법인 시상 현황입니다.</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               ${detailCard('손보 법인', '손보 법인시상금')}
-               ${detailCard('생보 법인', '생보 법인시상금')}
-               ${detailCard('2차년 인센티브', '2차년 인센티브')}
+
+            <!-- 행1: 요약 카드 3개 -->
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                <div class="col-span-2 md:col-span-1">
+                    ${summaryCard(
+                '실지급 총액 (수수료 + 시상금)',
+                grandNet,
+                '수수료', commNet,
+                '시상금', rewardNet,
+                'bg-primary',
+                commLoaded
+            )}
+                </div>
+                <div class="col-span-1">
+                    ${summaryCard(
+                '지사 수수료 실지급',
+                commNet,
+                '손보 수수료', nonLifePay + nonLifeRefund,
+                '생보 수수료', lifePay + lifeRefund,
+                'bg-blue-500',
+                commLoaded
+            )}
+                </div>
+                <div class="col-span-1">
+                    ${summaryCard(
+                '법인 시상금 실지급',
+                rewardNet,
+                '손보+생보 법인', (d['손보 법인시상금']?.pay || 0) + (d['손보 법인시상금']?.refund || 0) + (d['생보 법인시상금']?.pay || 0) + (d['생보 법인시상금']?.refund || 0),
+                '2차년 인센티브', (d['2차년 인센티브']?.pay || 0) + (d['2차년 인센티브']?.refund || 0),
+                'bg-orange-400',
+                true
+            )}
+                </div>
+            </div>
+
+            <!-- 행2: 수수료 상세 카드 (4,5,6번) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>${commDetailCard('손보 수수료', nonLifePay, nonLifeRefund, commLoaded)}</div>
+                <div>${commDetailCard('생보 수수료', lifePay, lifeRefund, commLoaded)}</div>
+                <div class="hidden md:block"></div>
+            </div>
+
+            <!-- 행3: 기존 시상금 3개 카드 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                ${rewardDetailCard('손보 법인', '손보 법인시상금')}
+                ${rewardDetailCard('생보 법인', '생보 법인시상금')}
+                ${rewardDetailCard('2차년 인센티브', '2차년 인센티브')}
+            </div>
+
+            <div class="text-center">
+                <div class="inline-block px-4 py-2 bg-gray-100 rounded-xl md:rounded-full text-sm text-gray-500 font-medium select-none text-center">
+                    💡 Tip: 시상금 지급/환수 금액을 클릭하면<br class="md:hidden"> 상세 내역을 볼 수 있습니다.
+                </div>
             </div>`;
+
             return div;
         }
 
@@ -2044,7 +2161,7 @@
             if (state.currentView === 'home' && state.data.homeData) { render(); return; }
             if (state.currentView === 'dashboard' && state.data.rewardData?.month === state.currentMonth) { render(); return; }
             if (state.currentView === 'recruitment' && state.data.recData?.month === state.currentMonth) { render(); return; }
-            if (state.currentView === 'branch' && state.data.rewardData?.month === state.currentMonth) { render(); return; }
+            if (state.currentView === 'branch' && state.data.rewardData?.month === state.currentMonth && state.data.branchCommData?.month === state.currentMonth) { render(); return; }
 
             // 2. Check Session Storage
             const cached = sessionStorage.getItem(cacheKey);
@@ -2069,7 +2186,8 @@
             }
 
             if (state.currentView === 'home') fetchHome(cacheKey);
-            else if (state.currentView === 'dashboard' || state.currentView === 'branch') fetchReward(cacheKey);
+            else if (state.currentView === 'dashboard') fetchReward(cacheKey);
+            else if (state.currentView === 'branch') fetchBranch(cacheKey);
             else if (state.currentView === 'recruitment') fetchRec(cacheKey);
             else if (state.currentView === 'admin') fetchAdmin(cacheKey);
         }
@@ -2104,6 +2222,35 @@
                 alert('데이터 로드 실패: ' + d.message);
                 render();
             }
+        }
+
+        async function fetchBranch(key) {
+            state.isLoading = true; render();
+            // 시상금데이터와 수수료데이터 동시 호출
+            const [rewardRes, commRes] = await Promise.all([
+                callApi('getRewardData', state.user.staffId, state.currentMonth),
+                callApi('getBranchCommissionData', state.user.staffId, state.currentMonth)
+            ]);
+            state.isLoading = false;
+
+            if (!rewardRes.error) {
+                rewardRes.month = state.currentMonth;
+                state.data.rewardData = rewardRes;
+                // branch 뷰의 시상금 캐시는 dashboard와 공유
+                sessionStorage.setItem(`DATA_${state.user.staffId}_${state.currentMonth}_dashboard`, JSON.stringify(rewardRes));
+                sessionStorage.setItem(`DATA_${state.user.staffId}_${state.currentMonth}_branch`, JSON.stringify(rewardRes));
+            }
+
+            if (!commRes.error && commRes.success) {
+                commRes.month = state.currentMonth;
+                state.data.branchCommData = commRes;
+            } else {
+                // 에러시 빈 값으로 초기화 (화면은 사용 가능)
+                state.data.branchCommData = { month: state.currentMonth, lifePay: 0, lifeRefund: 0, nonLifePay: 0, nonLifeRefund: 0 };
+                if (commRes.error) console.warn('수수료 데이터 로드 실패:', commRes.message);
+            }
+
+            render();
         }
         async function fetchRec(key) {
             state.isLoading = true; render();
@@ -2147,6 +2294,17 @@
                         d.month = state.currentMonth;
                         sessionStorage.setItem(`DATA_${state.user.staffId}_${state.currentMonth}_dashboard`, JSON.stringify(d));
                         sessionStorage.setItem(`DATA_${state.user.staffId}_${state.currentMonth}_branch`, JSON.stringify(d));
+                    }
+                });
+            }
+
+            // 1-2. Branch Commission Data (for 지사대표)
+            if (state.user.role === '지사대표' && !state.data.branchCommData) {
+                callApi('getBranchCommissionData', state.user.staffId, state.currentMonth).then(d => {
+                    if (!d.error && d.success) {
+                        d.month = state.currentMonth;
+                        state.data.branchCommData = d;
+                        if (state.currentView === 'branch') render();
                     }
                 });
             }
