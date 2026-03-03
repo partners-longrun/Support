@@ -1181,17 +1181,15 @@
             // 스피너 HTML
             const spinner = `<svg class="animate-spin w-5 h-5 text-gray-300 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
 
-            // 완전한 상단 3개 요약카드 (큰 복합 카드)
-            const summaryCard = (title, totalAmt, sub1Label, sub1Amt, sub2Label, sub2Amt, accentColor, loaded) => `
+            // 완전한 상단 3개 요약카드 (큰 복합 카드) / smallFont=true 이면 숫자 한 단계 작게
+            const summaryCard = (title, totalAmt, sub1Label, sub1Amt, sub2Label, sub2Amt, accentColor, loaded, smallFont = false) => `
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col h-full">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">${title}</p>
-                            <p class="text-2xl font-extrabold mt-1 ${Number(totalAmt) < 0 ? 'text-red-500' : 'text-gray-800'} tracking-tight">
-                                ${loaded ? formatMoney(totalAmt) : spinner}
-                            </p>
-                        </div>
-                        <span class="w-2 h-8 ${accentColor} rounded-full mt-1"></span>
+                    <div class="relative mb-3 text-center">
+                        <span class="absolute right-0 top-0 w-2 h-8 ${accentColor} rounded-full"></span>
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">${title}</p>
+                        <p class="${smallFont ? 'text-xl' : 'text-2xl'} font-extrabold mt-1 ${Number(totalAmt) < 0 ? 'text-red-500' : 'text-gray-800'} tracking-tight">
+                            ${loaded ? formatMoney(totalAmt) : spinner}
+                        </p>
                     </div>
                     <div class="mt-auto pt-3 border-t border-gray-50 grid grid-cols-2 gap-2 text-center">
                         <div>
@@ -1272,21 +1270,23 @@
                 </div>
                 <div class="col-span-1">
                     ${summaryCard(
-                '지사 수수료 실지급',
-                commNet,
-                '손보 수수료', nonLifePay + nonLifeRefund,
-                '생보 수수료', lifePay + lifeRefund,
+                '총 지급액 (수수료, 시상금)',
+                commTotalPay + rewardPay,
+                '수수료 지급', commTotalPay,
+                '시상금 지급', rewardPay,
                 'bg-blue-500',
-                commLoaded
+                commLoaded,
+                true
             )}
                 </div>
                 <div class="col-span-1">
                     ${summaryCard(
-                '법인 시상금 실지급',
-                rewardNet,
-                '손보+생보 법인', (d['손보 법인시상금']?.pay || 0) + (d['손보 법인시상금']?.refund || 0) + (d['생보 법인시상금']?.pay || 0) + (d['생보 법인시상금']?.refund || 0),
-                '2차년 인센티브', (d['2차년 인센티브']?.pay || 0) + (d['2차년 인센티브']?.refund || 0),
-                'bg-orange-400',
+                '총 환수액 (수수료, 시상금)',
+                commTotalRefund + rewardRefund,
+                '수수료 환수', commTotalRefund,
+                '시상금 환수', rewardRefund,
+                'bg-red-400',
+                commLoaded,
                 true
             )}
                 </div>
@@ -2173,7 +2173,26 @@
                         state.data.homeData = parsed;
                         state.homeLoaded = true;
                     }
-                    else if (state.currentView === 'dashboard' || state.currentView === 'branch') state.data.rewardData = parsed;
+                    else if (state.currentView === 'branch') {
+                        // branch 뷰: rewardData는 세션 캐시 복원, branchCommData는 별도 fetch
+                        state.data.rewardData = parsed;
+                        state.isLoading = false;
+                        render();
+                        if (!state.data.branchCommData || state.data.branchCommData.month !== state.currentMonth) {
+                            callApi('getBranchCommissionData', state.user.staffId, state.currentMonth).then(commRes => {
+                                if (!commRes.error && commRes.success) {
+                                    commRes.month = state.currentMonth;
+                                    state.data.branchCommData = commRes;
+                                } else {
+                                    state.data.branchCommData = { month: state.currentMonth, lifePay: 0, lifeRefund: 0, nonLifePay: 0, nonLifeRefund: 0 };
+                                    if (commRes.error) console.warn('수수료 로드 실패:', commRes.message);
+                                }
+                                if (state.currentView === 'branch') render();
+                            });
+                        }
+                        return;
+                    }
+                    else if (state.currentView === 'dashboard') state.data.rewardData = parsed;
                     else if (state.currentView === 'recruitment') state.data.recData = parsed;
                     else if (state.currentView === 'admin') state.data.adminSummary = parsed;
 
