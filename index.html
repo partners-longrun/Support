@@ -1257,8 +1257,8 @@
             </div>
 
             <!-- 행1: 요약 카드 3개 -->
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                <div class="col-span-2 md:col-span-1">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div class="col-span-1">
                     ${summaryCard(
                 '실지급 총액 (수수료 + 시상금)',
                 grandNet,
@@ -1268,7 +1268,7 @@
                 commLoaded
             )}
                 </div>
-                <div class="col-span-2 md:col-span-1">
+                <div class="col-span-1">
                     ${summaryCard(
                 '총 지급액 (수수료, 시상금)',
                 commTotalPay + rewardPay,
@@ -1279,7 +1279,7 @@
                 true
             )}
                 </div>
-                <div class="col-span-2 md:col-span-1">
+                <div class="col-span-1">
                     ${summaryCard(
                 '총 환수액 (수수료, 시상금)',
                 commTotalRefund + rewardRefund,
