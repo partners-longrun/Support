@@ -1231,10 +1231,10 @@
             const rewardDetailCard = (title, key) => {
                 const obj = d[key] || { pay: 0, refund: 0 };
                 const subTotal = obj.pay + obj.refund;
-                return `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                    <div class="flex justify-between mb-4 border-b border-gray-50 pb-3 items-center">
-                        <h3 class="font-bold text-base text-gray-800 flex items-center gap-2">
-                            <div class="w-1.5 h-1.5 rounded-full bg-primary/50"></div>${title}
+                return `<div class="bg-slate-50/60 rounded-2xl shadow-sm border border-slate-200/80 p-5">
+                    <div class="flex justify-between mb-4 border-b border-slate-200/60 pb-3 items-center">
+                        <h3 class="font-bold text-base text-gray-700 flex items-center gap-2">
+                            <div class="w-1.5 h-1.5 rounded-full bg-slate-400"></div>${title}
                         </h3>
                         <span class="text-base font-bold ${subTotal < 0 ? 'text-red-600' : 'text-gray-800'}">${formatMoney(subTotal)}</span>
                     </div>
