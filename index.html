@@ -2054,6 +2054,7 @@
 
             const rows = d.length ? d.map(x => `
              <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+               <td class="p-3 font-medium text-gray-800 text-center bg-gray-50/50 border-r border-gray-100/50">${x.recruiter || '-'}</td>
                <td class="p-3 text-gray-700">${x.company}</td>
                <td class="p-3 text-xs text-gray-500 font-mono">${x.policyNo}</td>
                <td class="p-3 font-medium text-gray-800"><div class="truncate-product" title="${x.product}">${x.product}</div></td>
@@ -2063,7 +2064,7 @@
                <td class="p-3 text-right font-bold ${x.amount > 0 ? 'text-blue-600' : 'text-red-500'}">${formatMoney(x.amount)}</td>
                <td class="p-3 text-right text-xs bg-gray-50 font-mono text-gray-600">${calcRate(Math.abs(x.amount), x.premium)}</td>
                <td class="p-3 text-xs text-gray-500 max-w-[200px] truncate" title="${x.desc}">${x.desc}</td>
-             </tr>`).join('') : '<tr><td colspan="9" class="p-8 text-center text-gray-500">내역이 없습니다.</td></tr>';
+             </tr>`).join('') : '<tr><td colspan="10" class="p-8 text-center text-gray-500">내역이 없습니다.</td></tr>';
 
             const titlePrefix = customTitle ? `<span class="text-gray-500 mr-2">[${customTitle}]</span>` : '';
 
@@ -2084,6 +2085,7 @@
                 <div class="overflow-auto flex-grow bg-white">
                     <table class="w-full text-sm whitespace-nowrap">
                         <thead class="bg-gray-100/80 sticky top-0 z-10 shadow-sm backdrop-blur-sm"><tr class="text-left text-gray-600">
+                            <th class="p-3 font-semibold text-center text-gray-800 bg-gray-100 border-r border-gray-200">모집인</th>
                             <th class="p-3 font-semibold">보험사</th>
                             <th class="p-3 font-semibold">증권번호</th>
                             <th class="p-3 font-semibold">상품명</th>
@@ -2157,6 +2159,7 @@
                 const calcRate = (amt, prem) => (!prem || prem == 0) ? '0%' : ((amt / prem) * 100).toFixed(1) + '%';
                 const rows = details.length ? details.map(x => `
                  <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                   <td class="p-3 font-medium text-gray-800 text-center bg-gray-50/50 border-r border-gray-100/50">${x.recruiter || name}</td>
                    <td class="p-3 text-gray-700">${x.company}</td>
                    <td class="p-3 text-xs text-gray-500 font-mono">${x.policyNo}</td>
                    <td class="p-3 font-medium text-gray-800"><div class="truncate-product" title="${x.product}">${x.product}</div></td>
@@ -2166,12 +2169,12 @@
                    <td class="p-3 text-right font-bold ${x.amount > 0 ? 'text-blue-600' : 'text-red-500'}">${formatMoney(x.amount)}</td>
                    <td class="p-3 text-right text-xs bg-gray-50 font-mono text-gray-600">${calcRate(Math.abs(x.amount), x.premium)}</td>
                    <td class="p-3 text-xs text-gray-500 max-w-[200px] truncate" title="${x.desc}">${x.desc}</td>
-                 </tr>`).join('') : '<tr><td colspan="9" class="p-8 text-center text-gray-500">내역이 없습니다.</td></tr>';
+                 </tr>`).join('') : '<tr><td colspan="10" class="p-8 text-center text-gray-500">내역이 없습니다.</td></tr>';
 
                 body.outerHTML = `<div class="overflow-auto flex-grow bg-white">
                     <table class="w-full text-sm whitespace-nowrap">
                         <thead class="bg-gray-100/80 sticky top-0 z-10 shadow-sm backdrop-blur-sm"><tr class="text-left text-gray-600">
-                            <th class="p-3 font-semibold">보험사</th><th class="p-3 font-semibold">증권번호</th><th class="p-3 font-semibold">상품명</th><th class="p-3 font-semibold">계약일</th><th class="p-3 text-right font-semibold">보험료</th><th class="p-3 text-center font-semibold">계약자</th><th class="p-3 text-right font-semibold">보험사시상</th><th class="p-3 text-right font-semibold">시상율(%)</th><th class="p-3 font-semibold">시상내용</th>
+                            <th class="p-3 font-semibold text-center text-gray-800 bg-gray-100 border-r border-gray-200">모집인</th><th class="p-3 font-semibold">보험사</th><th class="p-3 font-semibold">증권번호</th><th class="p-3 font-semibold">상품명</th><th class="p-3 font-semibold">계약일</th><th class="p-3 text-right font-semibold">보험료</th><th class="p-3 text-center font-semibold">계약자</th><th class="p-3 text-right font-semibold">보험사시상</th><th class="p-3 text-right font-semibold">시상율(%)</th><th class="p-3 font-semibold">시상내용</th>
                         </tr></thead>
                         <tbody class="divide-y divide-gray-100">${rows}</tbody>
                     </table>
