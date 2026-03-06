@@ -88,7 +88,7 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             text-align: left;
             line-height: 1.5;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             /* Offset from text */
         }
 
@@ -106,7 +106,7 @@
             visibility: hidden;
             transition: opacity 0.2s ease, visibility 0.2s ease;
             z-index: 50;
-            margin-bottom: -4px;
+            margin-bottom: -6px;
             /* Align arrow with tooltip body */
         }
 
@@ -1302,7 +1302,7 @@
                             <td class="p-2 text-center text-sm text-gray-600 bg-gray-50/60">${r.customer}</td>
                             <td class="p-2 text-right text-sm font-bold ${r.commission < 0 ? 'text-red-500' : 'text-blue-600'}">${formatMoney(r.commission)}</td>
                             <td class="p-2 text-right text-xs">${fmtR(r.commRate)}</td>
-                            <td class="p-2 text-right text-sm font-bold ${r.reward < 0 ? 'text-red-500' : 'text-blue-600'} ${r.rewardDesc ? 'custom-tooltip underline decoration-dotted underline-offset-2' : ''}" ${r.rewardDesc ? `data-tooltip="${r.rewardDesc}" tabindex="0"` : ''}>${formatMoney(r.reward)}</td>
+                            <td class="p-2 text-right text-sm font-bold ${r.reward < 0 ? 'text-red-500' : 'text-blue-600'} ${r.rewardDesc ? 'custom-tooltip text-blue-800/90' : ''}" ${r.rewardDesc ? `data-tooltip="${r.rewardDesc}" tabindex="0"` : ''}>${formatMoney(r.reward)}</td>
                             <td class="p-2 text-right text-xs">${fmtR(r.rewardRate)}</td>
                             <td class="p-2 text-right text-sm font-extrabold ${r.total < 0 ? 'text-red-500' : 'text-gray-900'} bg-indigo-50/60">${formatMoney(r.total)}</td>
                             <td class="p-2 text-right text-xs font-semibold bg-indigo-50/60">${fmtR(r.totalRate)}</td>
@@ -1324,7 +1324,7 @@
                             <div class="grid grid-cols-3 gap-2 text-center text-xs bg-gray-50 rounded-xl p-2">
                                 <div><p class="text-gray-400 mb-0.5">보험료</p><p class="font-semibold text-gray-700">${formatMoney(r.premium)}</p></div>
                                 <div><p class="text-gray-400 mb-0.5">익월수수료</p><p class="font-semibold ${r.commission < 0 ? 'text-red-500' : 'text-blue-600'}">${formatMoney(r.commission)}</p></div>
-                                <div><p class="text-gray-400 mb-0.5">시상금계</p><p class="font-semibold ${r.reward < 0 ? 'text-red-500' : 'text-blue-600'} ${r.rewardDesc ? 'custom-tooltip underline decoration-dotted underline-offset-2' : ''}" ${r.rewardDesc ? `data-tooltip="${r.rewardDesc}" tabindex="0"` : ''}>${formatMoney(r.reward)}</p></div>
+                                <div><p class="text-gray-400 mb-0.5">시상금계</p><p class="font-semibold ${r.reward < 0 ? 'text-red-500' : 'text-blue-600'} ${r.rewardDesc ? 'custom-tooltip text-blue-800/90' : ''}" ${r.rewardDesc ? `data-tooltip="${r.rewardDesc}" tabindex="0"` : ''}>${formatMoney(r.reward)}</p></div>
                             </div>
                             <div class="mt-2 text-right text-[11px] text-gray-400">계약자: ${r.customer} | 계약일: ${r.date} | 총수당율: ${r.totalRate}</div>
                         </div>`).join('');
