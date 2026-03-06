@@ -1476,10 +1476,12 @@
                         cols += td(u.lRef || 0, 'text-red-500 border-r border-gray-200', `fetchAndShowAdminDetail('${u.id}', '${u.name}', '생보 시상금', 'refund')`);
                         cols += td(u.hqPay || 0, 'text-blue-600', `fetchAndShowAdminDetail('${u.id}', '${u.name}', '본부 시상금', 'pay')`);
                         cols += td(u.hqRef || 0, 'text-red-500 border-r border-gray-200', `fetchAndShowAdminDetail('${u.id}', '${u.name}', '본부 시상금', 'refund')`);
-                        cols += td(u.nlCorpPay || 0, 'text-blue-600', `fetchAndShowAdminDetail('${u.id}', '${u.name}', '손보법인 시상금(개인)', 'pay')`);
-                        cols += td(u.nlCorpRef || 0, 'text-red-500 border-r border-gray-200', `fetchAndShowAdminDetail('${u.id}', '${u.name}', '손보법인 시상금(개인)', 'refund')`);
-                        cols += td(u.lCorpPay || 0, 'text-blue-600', `fetchAndShowAdminDetail('${u.id}', '${u.name}', '생보법인 시상금(개인)', 'pay')`);
-                        cols += td(u.lCorpRef || 0, 'text-red-500 border-r border-gray-200', `fetchAndShowAdminDetail('${u.id}', '${u.name}', '생보법인 시상금(개인)', 'refund')`);
+                        if (isBranch) {
+                            cols += td(u.nlCorpPay || 0, 'text-blue-600', `fetchAndShowAdminDetail('${u.id}', '${u.name}', '손보법인 시상금(개인)', 'pay')`);
+                            cols += td(u.nlCorpRef || 0, 'text-red-500 border-r border-gray-200', `fetchAndShowAdminDetail('${u.id}', '${u.name}', '손보법인 시상금(개인)', 'refund')`);
+                            cols += td(u.lCorpPay || 0, 'text-blue-600', `fetchAndShowAdminDetail('${u.id}', '${u.name}', '생보법인 시상금(개인)', 'pay')`);
+                            cols += td(u.lCorpRef || 0, 'text-red-500 border-r border-gray-200', `fetchAndShowAdminDetail('${u.id}', '${u.name}', '생보법인 시상금(개인)', 'refund')`);
+                        }
                     } else {
                         total = (u.nlPay || 0) + (u.nlRef || 0) + (u.lPay || 0) + (u.lRef || 0);
                         cols = td(u.nlPay || 0, 'text-blue-600') + td(u.nlRef || 0, 'text-red-500 border-r border-gray-200') + td(u.lPay || 0, 'text-blue-600') + td(u.lRef || 0, 'text-red-500 border-r border-gray-200');
@@ -1503,8 +1505,10 @@
                     headerCols += `<th colspan="2" class="px-2 py-2 text-center text-xs font-bold text-gray-600 bg-gray-50 border-b border-gray-200">손보시상</th>`;
                     headerCols += `<th colspan="2" class="px-2 py-2 text-center text-xs font-bold text-gray-600 bg-gray-50 border-b border-gray-200">생보시상</th>`;
                     headerCols += `<th colspan="2" class="px-2 py-2 text-center text-xs font-bold text-gray-600 bg-gray-50 border-b border-gray-200">본부시상</th>`;
-                    headerCols += `<th colspan="2" class="px-2 py-2 text-center text-xs font-bold text-gray-600 bg-gray-50 border-b border-gray-200">손보법인</th>`;
-                    headerCols += `<th colspan="2" class="px-2 py-2 text-center text-xs font-bold text-gray-600 bg-gray-50 border-b border-gray-200">생보법인</th>`;
+                    if (isBranch) {
+                        headerCols += `<th colspan="2" class="px-2 py-2 text-center text-xs font-bold text-gray-600 bg-gray-50 border-b border-gray-200">손보법인</th>`;
+                        headerCols += `<th colspan="2" class="px-2 py-2 text-center text-xs font-bold text-gray-600 bg-gray-50 border-b border-gray-200">생보법인</th>`;
+                    }
                 } else {
                     headerCols += `<th colspan="2" class="px-2 py-2 text-center text-xs font-bold text-gray-600 bg-gray-100 border-b border-gray-200">손보증원</th>`;
                     headerCols += `<th colspan="2" class="px-2 py-2 text-center text-xs font-bold text-gray-600 bg-gray-100 border-b border-gray-200">생보증원</th>`;
@@ -1520,8 +1524,10 @@
                     subHeaderCols += th('지급', 'text-blue-600') + th('환수', 'text-red-500 border-r border-gray-200');
                     subHeaderCols += th('지급', 'text-blue-600') + th('환수', 'text-red-500 border-r border-gray-200');
                     subHeaderCols += th('지급', 'text-blue-600') + th('환수', 'text-red-500 border-r border-gray-200');
-                    subHeaderCols += th('지급', 'text-blue-600') + th('환수', 'text-red-500 border-r border-gray-200');
-                    subHeaderCols += th('지급', 'text-blue-600') + th('환수', 'text-red-500 border-r border-gray-200');
+                    if (isBranch) {
+                        subHeaderCols += th('지급', 'text-blue-600') + th('환수', 'text-red-500 border-r border-gray-200');
+                        subHeaderCols += th('지급', 'text-blue-600') + th('환수', 'text-red-500 border-r border-gray-200');
+                    }
                 } else {
                     subHeaderCols = th('지급', 'text-blue-600') + th('환수', 'text-red-500 border-r border-gray-200') + th('지급', 'text-blue-600') + th('환수', 'text-red-500 border-r border-gray-200');
                 }
@@ -1574,6 +1580,7 @@
                                 <p class="text-xs font-bold ${(u.hqPay || 0) + (u.hqRef || 0) < 0 ? 'text-red-500' : 'text-gray-700'}">${formatAdminMoney((u.hqPay || 0) + (u.hqRef || 0))}</p>
                             </div>
                         </div>
+                        ${isBranch ? `
                         <div class="grid grid-cols-2 gap-1 mt-2 pt-2 border-t border-gray-50">
                             <div class="text-center p-1.5 bg-gray-50 rounded-lg">
                                 <p class="text-[9px] text-gray-500 font-bold mb-0.5">손보법인</p>
@@ -1583,7 +1590,7 @@
                                 <p class="text-[9px] text-gray-500 font-bold mb-0.5">생보법인</p>
                                 <p class="text-xs font-bold ${(u.lCorpPay || 0) + (u.lCorpRef || 0) < 0 ? 'text-red-500' : 'text-gray-700'}">${formatAdminMoney((u.lCorpPay || 0) + (u.lCorpRef || 0))}</p>
                             </div>
-                        </div>` : `
+                        </div>` : ''}` : `
                         <div class="grid grid-cols-2 gap-1 mt-2 pt-2 border-t border-gray-50">
                             <div class="text-center p-1.5 bg-gray-50 rounded-lg">
                                 <p class="text-[9px] text-gray-500 font-bold mb-0.5">손보증원</p>
