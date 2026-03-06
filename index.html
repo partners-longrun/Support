@@ -705,7 +705,7 @@
 
             container.innerHTML = `
                 <header class="bg-white shadow-sm sticky top-0 z-40 transition-shadow duration-300">
-                    <div class="${state.currentView === 'branch' ? 'max-w-full' : 'max-w-7xl'} mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="${(state.currentView === 'admin' && state.user.role === '지사대표') ? 'max-w-full' : 'max-w-7xl'} mx-auto px-4 sm:px-6 lg:px-8">
                         <div class="flex justify-between h-16 relative">
                             <div class="flex">
                                 <div class="absolute inset-x-0 h-16 flex items-center justify-center pointer-events-none md:static md:h-auto md:justify-start z-10">
@@ -783,7 +783,7 @@
                     <div id="mobile-backdrop" class="fixed inset-0 bg-black/50 z-20 hidden transition-opacity duration-300 md:hidden"></div>
                 </header>
 
-                <main class="flex-grow ${state.currentView === 'branch' ? 'max-w-full' : 'max-w-7xl'} mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 animate-fadeIn">
+                <main class="flex-grow ${(state.currentView === 'admin' && state.user.role === '지사대표') ? 'max-w-full' : 'max-w-7xl'} mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 animate-fadeIn">
                      <div id="main-view"></div>
                 </main>
 
@@ -1626,13 +1626,13 @@
                          <tr>
                            <th rowspan="2" class="min-w-[100px] px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider align-middle border-b border-gray-200 sticky left-0 z-20 bg-gray-50 shadow-[inset_-1px_0_0_0_#e5e7eb]">이름</th>
                            ${headerCols}
-                           <th rowspan="2" class="min-w-[95px] px-4 py-3 text-right font-bold text-gray-800 bg-gray-100/50 align-middle border-b border-gray-200">합계</th>
+                           <th rowspan="2" class="min-w-[110px] px-4 py-3 text-right font-bold text-gray-800 bg-gray-100/50 align-middle border-b border-gray-200">합계</th>
                          </tr>
                          <tr>${subHeaderCols}</tr>
                        </thead>
                        <tbody class="divide-y divide-gray-200 bg-white">
                           ${rows.map(({ cols, nameCell, total }) =>
-                    `<tr class="group hover:bg-gray-100 transition">${nameCell}${cols}<td class="min-w-[95px] px-4 py-2 text-right font-bold ${total < 0 ? 'text-red-500' : 'text-gray-900'} bg-gray-50/30 text-[13px] group-hover:bg-gray-100/50 transition">${formatAdminMoney(total)}</td></tr>`
+                    `<tr class="group hover:bg-gray-100 transition">${nameCell}${cols}<td class="min-w-[110px] px-4 py-2 text-right font-bold ${total < 0 ? 'text-red-500' : 'text-gray-900'} bg-gray-50/30 text-[13px] group-hover:bg-gray-100/50 transition">${formatAdminMoney(total)}</td></tr>`
                 ).join('')}
                        </tbody>
                     </table>
