@@ -1185,14 +1185,15 @@
                     </nav>
                 </div>
 
-                <!-- 검색창 + 전체검색 버튼 -->
+                <!-- 검색창 + 이름검색/전체검색 버튼 -->
                 <div class="mb-5 flex gap-2 max-w-lg">
                     <div class="relative flex-grow">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                             <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
                         </div>
-                        <input type="text" id="ncSearch" placeholder="이름 검색 후 Enter" class="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl bg-white shadow-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition">
+                        <input type="text" id="ncSearch" placeholder="이름 검색 후 Enter 또는 이름검색 클릭" class="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl bg-white shadow-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition">
                     </div>
+                    <button id="ncSearchBtn" class="px-4 py-2.5 bg-primary hover:bg-primary/90 text-white text-sm font-medium rounded-xl shadow-sm transition whitespace-nowrap">이름검색</button>
                     <button id="ncSearchAll" class="px-4 py-2.5 bg-gray-700 hover:bg-gray-900 text-white text-sm font-medium rounded-xl shadow-sm transition whitespace-nowrap">전체검색</button>
                 </div>
 
@@ -1313,11 +1314,17 @@
                     };
 
                     const searchInput = div.querySelector('#ncSearch');
+                    const searchBtn = div.querySelector('#ncSearchBtn');
                     const searchAllBtn = div.querySelector('#ncSearchAll');
 
                     if (searchInput) {
                         searchInput.addEventListener('keydown', (e) => {
                             if (e.key === 'Enter') doSearch(searchInput.value.trim());
+                        });
+                    }
+                    if (searchBtn) {
+                        searchBtn.addEventListener('click', () => {
+                            if (searchInput) doSearch(searchInput.value.trim());
                         });
                     }
                     if (searchAllBtn) {
