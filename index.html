@@ -1162,60 +1162,68 @@
 
             const div = document.createElement('div');
 
-            // --- 서브탭 뺄튼 헤더 ---
-            const subTabHtml = `
-            <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
-                <div class="flex space-x-1 bg-gray-100 p-1 rounded-xl">
-                    <button onclick="setBranchSubView('dashboard')" class="px-5 py-2 text-sm rounded-lg transition duration-200 ${state.branchSubView === 'dashboard' ? 'bg-white shadow-sm text-primary font-bold' : 'text-gray-500 hover:text-gray-700'}">대시보드</button>
-                    <button onclick="setBranchSubView('newContracts')" class="px-5 py-2 text-sm rounded-lg transition duration-200 ${state.branchSubView === 'newContracts' ? 'bg-white shadow-sm text-primary font-bold' : 'text-gray-500 hover:text-gray-700'}">신계약 리스트</button>
-                </div>
-            </div>`;
-
             if (state.branchSubView === 'newContracts') {
                 // === 신계약 리스트 화면 ===
-                div.innerHTML = subTabHtml + `
-                <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                div.innerHTML = `
+                <!-- 제목행 + 대시보드/신계약 탭 버튼 (오른쪽 끝) -->
+                <div class="flex flex-col sm:flex-row justify-between mb-4 items-start sm:items-center gap-4">
                     <div>
                         <h2 class="text-xl font-bold text-gray-800 tracking-tight">신계약 리스트 (${state.currentMonth})</h2>
                         <p class="text-gray-500 text-sm mt-1">수수료_DB 기준 신계약 수수료 및 시상금 현황입니다.</p>
                     </div>
-                    <div class="flex space-x-1 bg-gray-100 p-1 rounded-xl self-start">
-                        <button onclick="setNewContractTab('nl')" class="px-4 py-2 text-sm rounded-lg transition duration-200 ${state.newContractTab === 'nl' ? 'bg-white shadow-sm text-primary font-bold' : 'text-gray-500 hover:text-gray-700'}">손보 신계약</button>
-                        <button onclick="setNewContractTab('l')" class="px-4 py-2 text-sm rounded-lg transition duration-200 ${state.newContractTab === 'l' ? 'bg-white shadow-sm text-primary font-bold' : 'text-gray-500 hover:text-gray-700'}">생보 신계약</button>
+                    <div class="flex space-x-1 bg-gray-100 p-1 rounded-xl self-start sm:self-center">
+                        <button onclick="setBranchSubView('dashboard')" class="px-4 py-2 text-sm rounded-md transition duration-200 text-gray-500 hover:text-gray-700">대시보드</button>
+                        <button onclick="setBranchSubView('newContracts')" class="px-4 py-2 text-sm rounded-md transition duration-200 bg-white shadow-sm text-primary font-bold">신계약 리스트</button>
                     </div>
                 </div>
 
-                <div class="mb-5 relative max-w-md">
-                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
+                <!-- 손보/생보 탭 (border-bottom 스타일) -->
+                <div class="mb-4 border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-6">
+                        <button onclick="setNewContractTab('nl')" class="${state.newContractTab === 'nl' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'} whitespace-nowrap py-3 border-b-2 font-medium text-sm transition">손보 신계약</button>
+                        <button onclick="setNewContractTab('l')" class="${state.newContractTab === 'l' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'} whitespace-nowrap py-3 border-b-2 font-medium text-sm transition">생보 신계약</button>
+                    </nav>
+                </div>
+
+                <!-- 검색창 + 전체검색 버튼 -->
+                <div class="mb-5 flex gap-2 max-w-lg">
+                    <div class="relative flex-grow">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
+                        </div>
+                        <input type="text" id="ncSearch" placeholder="이름 검색 후 Enter" class="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl bg-white shadow-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition">
                     </div>
-                    <input type="text" id="ncSearch" placeholder="이름, 증권번호 검색" class="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl bg-white shadow-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition">
+                    <button id="ncSearchAll" class="px-4 py-2.5 bg-gray-700 hover:bg-gray-900 text-white text-sm font-medium rounded-xl shadow-sm transition whitespace-nowrap">전체검색</button>
                 </div>
 
                 <div id="nc-list-container">
-                    <div class="flex items-center justify-center h-40">
-                        <div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center text-gray-400">
+                        이름을 검색하거나 전체검색을 눌러 신계약 리스트를 조회합니다.
                     </div>
                 </div>`;
 
                 setTimeout(async () => {
-                    const cacheKey = state.newContractTab;
-                    const dataKey = cacheKey === 'nl' ? 'newContractNl' : 'newContractL';
+                    const dataKey = state.newContractTab === 'nl' ? 'newContractNl' : 'newContractL';
                     const container = div.querySelector('#nc-list-container');
 
-                    if (!state.data[dataKey] || state.data[dataKey + '_month'] !== state.currentMonth) {
+                    // 데이터 페치 (캐싱 포함)
+                    const fetchData = async () => {
+                        if (state.data[dataKey] && state.data[dataKey + '_month'] === state.currentMonth) {
+                            return state.data[dataKey];
+                        }
                         const res = await callApi('getNewContractList', state.user.staffId, state.currentMonth, state.newContractTab);
                         if (res.error || !res.success) {
                             container.innerHTML = `<div class="p-8 text-center text-red-500 bg-red-50 rounded-2xl border border-red-100">데이터를 불러오지 못했습니다.<br><span class="text-sm">${res.message || ''}</span></div>`;
-                            return;
+                            return null;
                         }
                         state.data[dataKey] = res.list || [];
                         state.data[dataKey + '_month'] = state.currentMonth;
-                    }
+                        return state.data[dataKey];
+                    };
 
                     const renderNcTable = (list) => {
                         if (!list || list.length === 0) {
-                            container.innerHTML = `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center text-gray-500">신계약 데이터가 없습니다.</div>`;
+                            container.innerHTML = `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center text-gray-500">해당 조건의 신계약 데이터가 없습니다.</div>`;
                             return;
                         }
                         const fmtR = (v) => `<span class="${parseFloat(v) < 0 ? 'text-red-500' : 'text-gray-700'}">${v}</span>`;
@@ -1224,19 +1232,18 @@
                             <td class="p-2 text-center text-xs text-gray-500 font-mono">${r.month}</td>
                             <td class="p-2 text-center font-semibold text-gray-800">${r.name}</td>
                             <td class="p-2 text-center text-xs text-gray-700">${r.company}</td>
-                            <td class="p-2 text-center text-xs text-gray-500 font-mono">${r.policyNo}</td>
+                            <td class="p-2 text-left text-xs text-gray-500 font-mono">${r.policyNo}</td>
                             <td class="p-2 text-center text-xs text-gray-500">${r.date}</td>
                             <td class="p-2 text-sm text-gray-700 max-w-[180px]"><div class="truncate" title="${r.product}">${r.product}</div></td>
                             <td class="p-2 text-center text-xs text-gray-500">${r.term}</td>
                             <td class="p-2 text-right text-sm font-medium text-gray-800">${formatMoney(r.premium)}</td>
-                            <td class="p-2 text-center text-xs text-gray-600">${r.customer}</td>
-                            <td class="p-2 text-center text-xs text-gray-600">${r.insured}</td>
+                            <td class="p-2 text-center text-xs text-gray-600 bg-gray-50/60">${r.customer}</td>
                             <td class="p-2 text-right text-sm font-bold ${r.commission < 0 ? 'text-red-500' : 'text-blue-600'}">${formatMoney(r.commission)}</td>
-                            <td class="p-2 text-center text-xs">${fmtR(r.commRate)}</td>
+                            <td class="p-2 text-right text-xs">${fmtR(r.commRate)}</td>
                             <td class="p-2 text-right text-sm font-bold ${r.reward < 0 ? 'text-red-500' : 'text-blue-600'}">${formatMoney(r.reward)}</td>
-                            <td class="p-2 text-center text-xs">${fmtR(r.rewardRate)}</td>
-                            <td class="p-2 text-right text-sm font-extrabold ${r.total < 0 ? 'text-red-500' : 'text-gray-900'} bg-gray-50/60">${formatMoney(r.total)}</td>
-                            <td class="p-2 text-center text-xs font-semibold bg-gray-50/60">${fmtR(r.totalRate)}</td>
+                            <td class="p-2 text-right text-xs">${fmtR(r.rewardRate)}</td>
+                            <td class="p-2 text-right text-sm font-extrabold ${r.total < 0 ? 'text-red-500' : 'text-gray-900'} bg-indigo-50/60">${formatMoney(r.total)}</td>
+                            <td class="p-2 text-right text-xs font-semibold bg-indigo-50/60">${fmtR(r.totalRate)}</td>
                         </tr>`).join('');
 
                         const mobileCards = list.map(r => `
@@ -1257,7 +1264,7 @@
                                 <div><p class="text-gray-400 mb-0.5">익월수수료</p><p class="font-semibold ${r.commission < 0 ? 'text-red-500' : 'text-blue-600'}">${formatMoney(r.commission)}</p></div>
                                 <div><p class="text-gray-400 mb-0.5">시상금계</p><p class="font-semibold ${r.reward < 0 ? 'text-red-500' : 'text-blue-600'}">${formatMoney(r.reward)}</p></div>
                             </div>
-                            <div class="mt-2 text-right text-[11px] text-gray-400">계약일: ${r.date} | 수싹율: ${r.totalRate}</div>
+                            <div class="mt-2 text-right text-[11px] text-gray-400">계약일: ${r.date} | 총수당율: ${r.totalRate}</div>
                         </div>`).join('');
 
                         container.innerHTML = `
@@ -1270,19 +1277,18 @@
                                         <th class="px-2 py-3 text-center">마감월</th>
                                         <th class="px-2 py-3 text-center">이름</th>
                                         <th class="px-2 py-3 text-center">보험사</th>
-                                        <th class="px-2 py-3 text-center">증권번호</th>
+                                        <th class="px-2 py-3 text-left">증권번호</th>
                                         <th class="px-2 py-3 text-center">계약일</th>
                                         <th class="px-2 py-3 text-center">상품명</th>
                                         <th class="px-2 py-3 text-center">납기</th>
                                         <th class="px-2 py-3 text-right">보험료</th>
-                                        <th class="px-2 py-3 text-center">계약자</th>
-                                        <th class="px-2 py-3 text-center">피보험자</th>
+                                        <th class="px-2 py-3 text-center bg-gray-100/60">계약자</th>
                                         <th class="px-2 py-3 text-right">익월수수료</th>
-                                        <th class="px-2 py-3 text-center">수수료율</th>
+                                        <th class="px-2 py-3 text-right">수수료율</th>
                                         <th class="px-2 py-3 text-right">시상금계</th>
-                                        <th class="px-2 py-3 text-center">익월시상율</th>
-                                        <th class="px-2 py-3 text-right bg-gray-100/50">익월총수당</th>
-                                        <th class="px-2 py-3 text-center bg-gray-100/50">총수당율</th>
+                                        <th class="px-2 py-3 text-right">익월시상율</th>
+                                        <th class="px-2 py-3 text-right bg-indigo-50/60">익월총수당</th>
+                                        <th class="px-2 py-3 text-right bg-indigo-50/60">총수당율</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-100 bg-white">${desktopRows}</tbody>
@@ -1293,16 +1299,31 @@
                         <div class="md:hidden flex flex-col gap-3">${mobileCards}</div>`;
                     };
 
-                    renderNcTable(state.data[dataKey]);
+                    // 검색 핸들러 (Enter키 또는 전체검색 버튼)
+                    const doSearch = async (filterText) => {
+                        container.innerHTML = `<div class="flex items-center justify-center h-40"><div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div></div>`;
+                        const allData = await fetchData();
+                        if (!allData) return;
+                        if (!filterText) {
+                            renderNcTable(allData);
+                        } else {
+                            const q = filterText.toLowerCase();
+                            renderNcTable(allData.filter(r => r.name.toLowerCase().includes(q) || r.policyNo.toLowerCase().includes(q)));
+                        }
+                    };
 
                     const searchInput = div.querySelector('#ncSearch');
+                    const searchAllBtn = div.querySelector('#ncSearchAll');
+
                     if (searchInput) {
-                        searchInput.addEventListener('input', (e) => {
-                            const q = e.target.value.toLowerCase();
-                            const filtered = state.data[dataKey].filter(r =>
-                                r.name.toLowerCase().includes(q) || r.policyNo.toLowerCase().includes(q)
-                            );
-                            renderNcTable(filtered);
+                        searchInput.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter') doSearch(searchInput.value.trim());
+                        });
+                    }
+                    if (searchAllBtn) {
+                        searchAllBtn.addEventListener('click', () => {
+                            if (searchInput) searchInput.value = '';
+                            doSearch('');
                         });
                     }
                 }, 10);
@@ -1405,10 +1426,16 @@
                 </div>`;
             };
 
-            div.innerHTML = subTabHtml + `
-            <div class="mb-6">
-                <h2 class="text-xl font-bold text-gray-800">지사의 수수료와 시상금 (${state.currentMonth})</h2>
-                <p class="text-sm text-gray-500 mt-1">지사 수수료 및 법인 시상 현황입니다.</p>
+            div.innerHTML = `
+            <div class="flex flex-col sm:flex-row justify-between mb-6 items-start sm:items-center gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800">지사의 수수료와 시상금 (${state.currentMonth})</h2>
+                    <p class="text-sm text-gray-500 mt-1">지사 수수료 및 법인 시상 현황입니다.</p>
+                </div>
+                <div class="flex space-x-1 bg-gray-100 p-1 rounded-xl self-start sm:self-center">
+                    <button onclick="setBranchSubView('dashboard')" class="px-4 py-2 text-sm rounded-md transition duration-200 bg-white shadow-sm text-primary font-bold">대시보드</button>
+                    <button onclick="setBranchSubView('newContracts')" class="px-4 py-2 text-sm rounded-md transition duration-200 text-gray-500 hover:text-gray-700">신계약 리스트</button>
+                </div>
             </div>
 
             <!-- 행1: 요약 카드 3개 -->
