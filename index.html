@@ -1234,13 +1234,13 @@
                             <td class="p-2 text-center text-xs text-gray-700">${r.company}</td>
                             <td class="p-2 text-left text-xs text-gray-500 font-mono">${r.policyNo}</td>
                             <td class="p-2 text-center text-xs text-gray-500">${r.date}</td>
-                            <td class="p-2 text-sm text-gray-700 max-w-[180px]"><div class="truncate" title="${r.product}">${r.product}</div></td>
+                            <td class="p-2 text-xs text-gray-700 max-w-[180px]"><div class="truncate" title="${r.product}">${r.product}</div></td>
                             <td class="p-2 text-center text-xs text-gray-500">${r.term}</td>
                             <td class="p-2 text-right text-sm font-medium text-gray-800">${formatMoney(r.premium)}</td>
-                            <td class="p-2 text-center text-xs text-gray-600 bg-gray-50/60">${r.customer}</td>
+                            <td class="p-2 text-center text-sm text-gray-600 bg-gray-50/60">${r.customer}</td>
                             <td class="p-2 text-right text-sm font-bold ${r.commission < 0 ? 'text-red-500' : 'text-blue-600'}">${formatMoney(r.commission)}</td>
                             <td class="p-2 text-right text-xs">${fmtR(r.commRate)}</td>
-                            <td class="p-2 text-right text-sm font-bold ${r.reward < 0 ? 'text-red-500' : 'text-blue-600'}">${formatMoney(r.reward)}</td>
+                            <td class="p-2 text-right text-sm font-bold ${r.reward < 0 ? 'text-red-500' : 'text-blue-600'}" title="${r.rewardDesc || ''}">${formatMoney(r.reward)}</td>
                             <td class="p-2 text-right text-xs">${fmtR(r.rewardRate)}</td>
                             <td class="p-2 text-right text-sm font-extrabold ${r.total < 0 ? 'text-red-500' : 'text-gray-900'} bg-indigo-50/60">${formatMoney(r.total)}</td>
                             <td class="p-2 text-right text-xs font-semibold bg-indigo-50/60">${fmtR(r.totalRate)}</td>
@@ -1262,12 +1262,15 @@
                             <div class="grid grid-cols-3 gap-2 text-center text-xs bg-gray-50 rounded-xl p-2">
                                 <div><p class="text-gray-400 mb-0.5">보험료</p><p class="font-semibold text-gray-700">${formatMoney(r.premium)}</p></div>
                                 <div><p class="text-gray-400 mb-0.5">익월수수료</p><p class="font-semibold ${r.commission < 0 ? 'text-red-500' : 'text-blue-600'}">${formatMoney(r.commission)}</p></div>
-                                <div><p class="text-gray-400 mb-0.5">시상금계</p><p class="font-semibold ${r.reward < 0 ? 'text-red-500' : 'text-blue-600'}">${formatMoney(r.reward)}</p></div>
+                                <div><p class="text-gray-400 mb-0.5">시상금계</p><p class="font-semibold ${r.reward < 0 ? 'text-red-500' : 'text-blue-600'}" title="${r.rewardDesc || ''}">${formatMoney(r.reward)}</p></div>
                             </div>
-                            <div class="mt-2 text-right text-[11px] text-gray-400">계약일: ${r.date} | 총수당율: ${r.totalRate}</div>
+                            <div class="mt-2 text-right text-[11px] text-gray-400">계약자: ${r.customer} | 계약일: ${r.date} | 총수당율: ${r.totalRate}</div>
                         </div>`).join('');
 
                         container.innerHTML = `
+                        <div class="flex justify-end mb-2 px-1 text-sm text-gray-600">
+                            조회 결과: <span class="font-bold text-gray-800 ml-1">${list.length}</span>건
+                        </div>
                         <!-- 데스크탑 테이블 -->
                         <div class="hidden md:block bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden mb-4">
                             <div class="overflow-x-auto">
@@ -1286,7 +1289,7 @@
                                         <th class="px-2 py-3 text-right">익월수수료</th>
                                         <th class="px-2 py-3 text-right">수수료율</th>
                                         <th class="px-2 py-3 text-right">시상금계</th>
-                                        <th class="px-2 py-3 text-right">익월시상율</th>
+                                        <th class="px-2 py-3 text-right">시상율</th>
                                         <th class="px-2 py-3 text-right bg-indigo-50/60">익월총수당</th>
                                         <th class="px-2 py-3 text-right bg-indigo-50/60">총수당율</th>
                                     </tr>
