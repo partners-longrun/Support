@@ -502,35 +502,35 @@
                 <div class="mb-8">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <!-- 1. 유지율 카드 -->
-                        <div class="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col justify-center cursor-pointer hover:border-blue-100 transition group" onclick="fetchAndShowLapsedContracts()">
+                        <div class="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col justify-center cursor-pointer hover:border-gray-300 transition group" onclick="fetchAndShowLapsedContracts()">
                             <div class="flex items-center gap-2 mb-4 w-full">
-                                <span class="w-1.5 h-4 bg-gray-300 group-hover:bg-blue-400 rounded-full inline-block transition-colors"></span>
-                                <p class="text-sm font-bold text-gray-700 tracking-wide group-hover:text-blue-500 transition-colors">나의 13회차 통산유지율 ${displayMonth !== '-' && displayMonth !== undefined ? '(' + displayMonth + ' 기준)' : ''}</p>
+                                <span class="w-1.5 h-4 bg-primary rounded-full inline-block"></span>
+                                <p class="text-sm font-bold text-gray-700 tracking-wide">나의 13회차 통산유지율 ${displayMonth !== '-' && displayMonth !== undefined ? '(' + displayMonth + ' 기준)' : ''}</p>
                             </div>
-                            <div class="text-4xl font-extrabold text-gray-400 group-hover:${state.homeLoaded ? rateClass : 'text-primary'} transition-colors tracking-tight drop-shadow-sm text-center w-full flex justify-center items-center h-10">
-                                ${state.homeLoaded ? retentionDisplay : '<svg class="animate-spin w-8 h-8 text-gray-300 group-hover:text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>'}
+                            <div class="text-4xl font-extrabold ${state.homeLoaded ? rateClass : 'text-primary'} tracking-tight drop-shadow-sm text-center w-full flex justify-center items-center h-10">
+                                ${state.homeLoaded ? retentionDisplay : '<svg class="animate-spin w-8 h-8 text-primary/40" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>'}
                             </div>
                         </div>
                         
                         <!-- 2. 당월 실효 건수 카드 -->
-                        <div class="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col justify-center cursor-pointer hover:border-red-100 transition group" onclick="state.lapseCurrentTab='lapsed'; navigate('lapse')">
+                        <div class="bg-gradient-to-br from-white to-red-50/30 rounded-2xl shadow-sm border border-red-50 p-6 flex flex-col justify-center cursor-pointer hover:border-red-100 transition group" onclick="state.lapseCurrentTab='lapsed'; navigate('lapse')">
                             <div class="flex items-center gap-2 mb-4 w-full">
-                                <span class="w-1.5 h-4 bg-gray-300 group-hover:bg-red-400 rounded-full inline-block transition-colors"></span>
-                                <p class="text-sm font-bold text-gray-700 tracking-wide group-hover:text-red-500 transition-colors">당월 실효 건수</p>
+                                <span class="w-1.5 h-4 bg-red-400 rounded-full inline-block"></span>
+                                <p class="text-sm font-bold text-gray-700 tracking-wide group-hover:text-red-500 transition">당월 실효 건수</p>
                             </div>
-                            <div class="text-2xl font-extrabold text-gray-400 group-hover:text-red-500 tracking-tight drop-shadow-sm text-center w-full group-hover:scale-105 transition-all duration-300 flex justify-center items-center h-8" id="home-lapsed-count">
-                                ${state.lapseLoaded ? (state.lapseData.lapsed?.length || 0) + '<span class="text-lg ml-0.5 font-bold">건</span>' : '<svg class="animate-spin w-6 h-6 text-gray-300 group-hover:text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>'}
+                            <div class="text-2xl font-extrabold text-red-500 tracking-tight drop-shadow-sm text-center w-full group-hover:scale-105 transition-transform duration-300 flex justify-center items-center h-8" id="home-lapsed-count">
+                                ${state.lapseLoaded ? (state.lapseData.lapsed?.length || 0) + '<span class="text-lg ml-0.5 font-bold">건</span>' : '<svg class="animate-spin w-6 h-6 text-red-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>'}
                             </div>
                         </div>
 
                         <!-- 3. 당월 연체 건수 카드 -->
-                        <div class="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col justify-center cursor-pointer hover:border-orange-100 transition group" onclick="state.lapseCurrentTab='arrears'; navigate('lapse')">
+                        <div class="bg-gradient-to-br from-white to-orange-50/30 rounded-2xl shadow-sm border border-orange-50 p-6 flex flex-col justify-center cursor-pointer hover:border-orange-100 transition group" onclick="state.lapseCurrentTab='arrears'; navigate('lapse')">
                             <div class="flex items-center gap-2 mb-4 w-full">
-                                <span class="w-1.5 h-4 bg-gray-300 group-hover:bg-orange-400 rounded-full inline-block transition-colors"></span>
-                                <p class="text-sm font-bold text-gray-700 tracking-wide group-hover:text-orange-500 transition-colors">당월 연체 건수</p>
+                                <span class="w-1.5 h-4 bg-orange-400 rounded-full inline-block"></span>
+                                <p class="text-sm font-bold text-gray-700 tracking-wide group-hover:text-orange-500 transition">당월 연체 건수</p>
                             </div>
-                            <div class="text-2xl font-extrabold text-gray-400 group-hover:text-orange-500 tracking-tight drop-shadow-sm text-center w-full group-hover:scale-105 transition-all duration-300 flex justify-center items-center h-8" id="home-arrears-count">
-                                ${state.lapseLoaded ? (state.lapseData.arrears?.length || 0) + '<span class="text-lg ml-0.5 font-bold">건</span>' : '<svg class="animate-spin w-6 h-6 text-gray-300 group-hover:text-orange-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>'}
+                            <div class="text-2xl font-extrabold text-orange-500 tracking-tight drop-shadow-sm text-center w-full group-hover:scale-105 transition-transform duration-300 flex justify-center items-center h-8" id="home-arrears-count">
+                                ${state.lapseLoaded ? (state.lapseData.arrears?.length || 0) + '<span class="text-lg ml-0.5 font-bold">건</span>' : '<svg class="animate-spin w-6 h-6 text-orange-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>'}
                             </div>
                         </div>
                     </div>
@@ -617,7 +617,7 @@
                     </div>
                     
                     <div onclick="navigate('retentionAdmin')" class="bg-white cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:border-gray-300 transition-all duration-300 rounded-2xl p-5 border border-gray-100 flex items-center text-left group gap-4">
-                        <div class="w-14 h-14 bg-gray-50 text-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-700 group-hover:text-white transition-colors duration-300 shadow-sm border border-gray-100/50">
+                        <div class="w-14 h-14 bg-gray-50 text-slate-600 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-700 group-hover:text-white transition-colors duration-300 shadow-sm border border-gray-100/50">
                             <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         </div>
                         <div>
@@ -3050,6 +3050,41 @@
                     let parsed = typeof d === 'string' ? (() => { try { return JSON.parse(d); } catch (e) { return d; } })() : d;
                     if (!parsed.error) {
                         sessionStorage.setItem(`DATA_${state.user.staffId}_${state.currentMonth}_admin`, JSON.stringify(parsed));
+
+                        // [UX 개선] 관리자 테이블 팝업 미리 캐싱 (Prefetch)
+                        if (parsed.reward) {
+                            const allMembers = [...(parsed.reward.active || []), ...(parsed.reward.resigned || [])];
+                            // 메인 스레드 부하 방지를 위해 최대 30명까지만 순차적 선로딩 적용
+                            const membersToPrefetch = allMembers.slice(0, 30);
+
+                            membersToPrefetch.forEach((m, idx) => {
+                                setTimeout(() => {
+                                    const id = String(m.id || m['사번']);
+                                    const rKey = `DATA_${id}_${state.currentMonth}_dashboard`;
+                                    if (!sessionStorage.getItem(rKey)) {
+                                        callApi('getRewardData', id, state.currentMonth).then(rd => {
+                                            if (rd && !rd.error) {
+                                                rd.month = state.currentMonth;
+                                                sessionStorage.setItem(rKey, JSON.stringify(rd));
+                                            }
+                                        });
+                                    }
+
+                                    if (state.user.role === '지사대표') {
+                                        ['nl', 'l', 'm'].forEach(cType => {
+                                            ['pay', 'refund'].forEach(pType => {
+                                                const cKey = `DATA_COMM_${id}_${state.currentMonth}_${cType}_${pType}`;
+                                                if (!sessionStorage.getItem(cKey)) {
+                                                    callApi('getBranchMemberCommissionDetails', state.user.staffId, id, state.currentMonth, cType, pType).then(cd => {
+                                                        if (cd && cd.success && !cd.error) sessionStorage.setItem(cKey, JSON.stringify(cd));
+                                                    });
+                                                }
+                                            });
+                                        });
+                                    }
+                                }, idx * 800); // 0.8초 간격 분산 호출
+                            });
+                        }
                     }
                 });
             }
