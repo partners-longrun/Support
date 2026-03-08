@@ -2955,7 +2955,7 @@
                 });
             }
 
-            // 4. Lapse Data
+            // 4. Lapse Data (Home/My Lapsed)
             if (!state.lapseLoaded) {
                 callApi('getLapseManagementData', state.user.staffId, 'collector').then(res => {
                     if (res.success) {
@@ -2964,6 +2964,46 @@
                         updateHomeLapseCounts(); // Refresh UI specifically
                     }
                 });
+            }
+
+            // 5. Lapse Admin Summary
+            if ((state.user.role === '지사대표' || state.user.role === '실장' || state.user.role === '운영진') && !state.data.lapseAdminSummary) {
+                callApi('getAdminLapseArrearsSummary', state.user.staffId, 'recruiter').then(res => {
+                    if (!res.error && res.success) {
+                        state.data.lapseAdminSummary = res.list || [];
+                        state.data.lapseAdminSummary.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+                        state.data.lapseAdminSummaryType = 'recruiter';
+                    }
+                });
+            }
+
+            // 6. Retention Admin Summary
+            if ((state.user.role === '지사대표' || state.user.role === '실장' || state.user.role === '운영진') && !state.data.retentionAdminSummary) {
+                callApi('getAdminRetentionSummary', state.user.staffId).then(res => {
+                    if (!res.error && res.success) {
+                        state.data.retentionAdminSummary = res.list || [];
+                    }
+                });
+            }
+
+            // 7. New Contracts (Both NL and L)
+            if (state.user.role === '지사대표') {
+                if (!state.data.newContractNl || state.data.newContractNl_month !== state.currentMonth) {
+                    callApi('getNewContractList', state.user.staffId, state.currentMonth, 'nl').then(res => {
+                        if (!res.error && res.success) {
+                            state.data.newContractNl = res.list || [];
+                            state.data.newContractNl_month = state.currentMonth;
+                        }
+                    });
+                }
+                if (!state.data.newContractL || state.data.newContractL_month !== state.currentMonth) {
+                    callApi('getNewContractList', state.user.staffId, state.currentMonth, 'l').then(res => {
+                        if (!res.error && res.success) {
+                            state.data.newContractL = res.list || [];
+                            state.data.newContractL_month = state.currentMonth;
+                        }
+                    });
+                }
             }
         }
 
