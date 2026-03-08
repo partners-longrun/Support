@@ -1390,6 +1390,9 @@
                             if (searchInput) doSearch(searchInput.value.trim());
                         });
                     }
+
+                    // [CHANGE] Immediately perform empty search to display all initial data
+                    doSearch('');
                 }, 10);
 
                 return div;
@@ -2313,7 +2316,7 @@
             const totalAmt = d.reduce((sum, x) => sum + (x.amount || 0), 0);
             const totalColor = totalAmt >= 0 ? 'text-blue-600' : 'text-red-500';
 
-            const rows = d.length ? d.map(x => `
+            const desktopRows = d.length ? d.map(x => `
              <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
                <td class="p-3 font-medium text-gray-800 text-center bg-gray-50/50 border-r border-gray-100/50">${x.recruiter || '-'}</td>
                <td class="p-3 text-gray-700">${x.company}</td>
@@ -2327,40 +2330,76 @@
                <td class="p-3 text-xs text-gray-500 max-w-[200px] truncate" title="${x.desc}">${x.desc}</td>
              </tr>`).join('') : '<tr><td colspan="10" class="p-8 text-center text-gray-500">내역이 없습니다.</td></tr>';
 
-            const titlePrefix = customTitle ? `<span class="text-gray-500 mr-2">[${customTitle}]</span>` : '';
-
-            modal.innerHTML = `<div class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl flex flex-col max-h-[90vh] overflow-hidden transform transition-all scale-100 ring-1 ring-black/5">
-                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                    <h3 class="font-bold text-xl text-gray-800 flex items-center gap-3">
-                        <span class="w-1.5 h-6 bg-primary rounded-full block shadow-sm"></span>
-                        <span>${titlePrefix}${k} <span class="${t === 'pay' ? 'text-blue-600' : 'text-red-500'}">${t === 'pay' ? '지급' : '환수'}</span> 상세내역</span>
-                    </h3>
-                    <div class="flex items-center gap-3">
-                        <div class="text-right">
-                            <div class="text-xs text-gray-400 font-medium">합계 (수수료+시상금)</div>
-                            <div class="text-lg font-extrabold ${totalColor} tabular-nums">${Number(totalAmt).toLocaleString()}원</div>
-                        </div>
-                        <button class="close p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition focus:outline-none"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            const mobileCards = d.length ? d.map(x => `
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3 last:mb-0">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <p class="font-bold text-gray-900">${x.recruiter || '-'} <span class="text-xs text-gray-400 font-normal">(${x.company})</span></p>
+                        <p class="text-xs text-gray-500 font-mono mt-0.5">${x.policyNo}</p>
+                    </div>
+                    <div class="text-right flex flex-col items-end">
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${x.amount > 0 ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-red-50 text-red-600 border border-red-100'} mb-1">${t === 'pay' ? '지급' : '환수'} ${(x.amount > 0 && t === 'pay') || (x.amount < 0 && t !== 'pay') ? '' : '(주의)'}</span>
+                        <p class="font-extrabold text-base ${x.amount > 0 ? 'text-blue-600' : 'text-red-500'}">${formatMoney(x.amount)}</p>
                     </div>
                 </div>
-                <div class="overflow-auto flex-grow bg-white">
-                    <table class="w-full text-sm whitespace-nowrap">
-                        <thead class="bg-gray-100/80 sticky top-0 z-10 shadow-sm backdrop-blur-sm"><tr class="text-left text-gray-600">
-                            <th class="p-3 font-semibold text-center text-gray-800 bg-gray-100 border-r border-gray-200">모집인</th>
-                            <th class="p-3 font-semibold">보험사</th>
-                            <th class="p-3 font-semibold">증권번호</th>
-                            <th class="p-3 font-semibold">상품명</th>
-                            <th class="p-3 font-semibold">계약일</th>
-                            <th class="p-3 text-right font-semibold">보험료</th>
-                            <th class="p-3 text-center font-semibold">계약자</th>
-                            <th class="p-3 text-right font-semibold">보험사시상</th>
-                            <th class="p-3 text-right font-semibold">시상율(%)</th>
-                            <th class="p-3 font-semibold">시상내용</th>
-                        </tr></thead>
-                        <tbody class="divide-y divide-gray-100">${rows}</tbody>
-                    </table>
+                <p class="text-sm text-gray-600 mb-2 font-medium truncate">${x.product}</p>
+                <div class="grid grid-cols-2 gap-2 text-center text-xs bg-gray-50 rounded-xl p-2.5 mb-2">
+                    <div><p class="text-gray-400 mb-0.5">보험료</p><p class="font-semibold text-gray-700">${formatMoney(x.premium)}</p></div>
+                    <div><p class="text-gray-400 mb-0.5">시상금 비율</p><p class="font-semibold text-gray-600">${calcRate(Math.abs(x.amount), x.premium)}</p></div>
                 </div>
-                <div class="p-4 bg-gray-50 border-t border-gray-100 text-right">
+                <div class="flex justify-between items-center mt-1 text-[11px] text-gray-400">
+                    <span>계약자: <span class="text-gray-600">${x.customer}</span></span>
+                    <span>계약일: <span class="text-gray-600">${x.date}</span></span>
+                </div>
+                <div class="mt-2 text-[11px] text-gray-500 bg-gray-50/50 p-2 rounded-lg border border-gray-100/50 truncate" title="${x.desc}">
+                    <span class="font-bold text-gray-400 mr-1">내용:</span>${x.desc}
+                </div>
+            </div>`).join('') : '<div class="p-8 text-center text-gray-500 bg-gray-50 rounded-2xl">상세 내역이 없습니다.</div>';
+
+            const titlePrefix = customTitle ? `<span class="text-gray-500 mr-2">[${customTitle}]</span>` : '';
+
+            modal.innerHTML = `<div class="bg-gray-50 md:bg-white rounded-t-3xl md:rounded-2xl shadow-2xl w-full max-w-6xl flex flex-col max-h-[90vh] md:max-h-[85vh] mt-auto md:mt-0 overflow-hidden transform transition-all scale-100 ring-1 ring-black/5">
+                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-20">
+                    <h3 class="font-bold text-base md:text-xl text-gray-800 flex items-center gap-2 md:gap-3">
+                        <span class="w-1.5 h-5 md:h-6 bg-primary rounded-full block shadow-sm"></span>
+                        <span class="truncate max-w-[150px] md:max-w-none">${titlePrefix}${k} <span class="${t === 'pay' ? 'text-blue-600' : 'text-red-500'}">${t === 'pay' ? '지급' : '환수'}</span></span>
+                    </h3>
+                    <div class="flex items-center gap-3 md:gap-4">
+                        <div class="text-right">
+                            <div class="text-[10px] md:text-xs text-gray-400 font-medium tracking-tight">전체 합계</div>
+                            <div class="text-sm md:text-lg font-extrabold ${totalColor} tabular-nums">${Number(totalAmt).toLocaleString()}원</div>
+                        </div>
+                        <button class="close p-1.5 md:p-2 bg-gray-100 md:bg-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-full transition focus:outline-none"><svg class="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                    </div>
+                </div>
+                
+                <div class="overflow-y-auto flex-grow bg-gray-50 md:bg-white p-4 md:p-0">
+                    <!-- 데스크탑 테이블 뷰 -->
+                    <div class="hidden md:block">
+                        <table class="w-full text-sm whitespace-nowrap">
+                            <thead class="bg-gray-100/80 sticky top-0 z-10 shadow-sm backdrop-blur-sm"><tr class="text-left text-gray-600">
+                                <th class="p-3 font-semibold text-center text-gray-800 bg-gray-100 border-r border-gray-200">모집인</th>
+                                <th class="p-3 font-semibold">보험사</th>
+                                <th class="p-3 font-semibold">증권번호</th>
+                                <th class="p-3 font-semibold">상품명</th>
+                                <th class="p-3 font-semibold">계약일</th>
+                                <th class="p-3 text-right font-semibold">보험료</th>
+                                <th class="p-3 text-center font-semibold">계약자</th>
+                                <th class="p-3 text-right font-semibold">보험사시상</th>
+                                <th class="p-3 text-right font-semibold">시상율(%)</th>
+                                <th class="p-3 font-semibold">시상내용</th>
+                            </tr></thead>
+                            <tbody class="divide-y divide-gray-100">${desktopRows}</tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 모바일 카드 뷰 -->
+                    <div class="md:hidden flex flex-col">
+                        ${mobileCards}
+                    </div>
+                </div>
+                
+                <div class="p-4 bg-white border-t border-gray-100 hidden md:block text-right">
                     <button class="close px-6 py-2.5 bg-gray-800 hover:bg-gray-900 text-white font-medium rounded-xl shadow-lg shadow-gray-200 transition">닫기</button>
                 </div>
             </div>`;
@@ -2418,7 +2457,8 @@
                 }
 
                 const calcRate = (amt, prem) => (!prem || prem == 0) ? '0%' : ((amt / prem) * 100).toFixed(1) + '%';
-                const rows = details.length ? details.map(x => `
+
+                const desktopRows = details.length ? details.map(x => `
                  <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
                    <td class="p-3 font-medium text-gray-800 text-center bg-gray-50/50 border-r border-gray-100/50">${x.recruiter || name}</td>
                    <td class="p-3 text-gray-700">${x.company}</td>
@@ -2432,13 +2472,47 @@
                    <td class="p-3 text-xs text-gray-500 max-w-[200px] truncate" title="${x.desc}">${x.desc}</td>
                  </tr>`).join('') : '<tr><td colspan="10" class="p-8 text-center text-gray-500">내역이 없습니다.</td></tr>';
 
-                body.outerHTML = `<div class="overflow-auto flex-grow bg-white">
-                    <table class="w-full text-sm whitespace-nowrap">
-                        <thead class="bg-gray-100/80 sticky top-0 z-10 shadow-sm backdrop-blur-sm"><tr class="text-left text-gray-600">
-                            <th class="p-3 font-semibold text-center text-gray-800 bg-gray-100 border-r border-gray-200">모집인</th><th class="p-3 font-semibold">보험사</th><th class="p-3 font-semibold">증권번호</th><th class="p-3 font-semibold">상품명</th><th class="p-3 font-semibold">계약일</th><th class="p-3 text-right font-semibold">보험료</th><th class="p-3 text-center font-semibold">계약자</th><th class="p-3 text-right font-semibold">보험사시상</th><th class="p-3 text-right font-semibold">시상율(%)</th><th class="p-3 font-semibold">시상내용</th>
-                        </tr></thead>
-                        <tbody class="divide-y divide-gray-100">${rows}</tbody>
-                    </table>
+                const mobileCards = details.length ? details.map(x => `
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-3 last:mb-0">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="font-bold text-gray-900">${x.recruiter || name} <span class="text-xs text-gray-400 font-normal">(${x.company})</span></p>
+                            <p class="text-xs text-gray-500 font-mono mt-0.5">${x.policyNo}</p>
+                        </div>
+                        <div class="text-right flex flex-col items-end">
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${x.amount > 0 ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-red-50 text-red-600 border border-red-100'} mb-1">${type === 'pay' ? '지급' : '환수'} ${(x.amount > 0 && type === 'pay') || (x.amount < 0 && type !== 'pay') ? '' : '(주의)'}</span>
+                            <p class="font-extrabold text-base ${x.amount > 0 ? 'text-blue-600' : 'text-red-500'}">${formatMoney(x.amount)}</p>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-2 font-medium truncate">${x.product}</p>
+                    <div class="grid grid-cols-2 gap-2 text-center text-xs bg-gray-50 rounded-xl p-2.5 mb-2">
+                        <div><p class="text-gray-400 mb-0.5">보험료</p><p class="font-semibold text-gray-700">${formatMoney(x.premium)}</p></div>
+                        <div><p class="text-gray-400 mb-0.5">시상금 비율</p><p class="font-semibold text-gray-600">${calcRate(Math.abs(x.amount), x.premium)}</p></div>
+                    </div>
+                    <div class="flex justify-between items-center mt-1 text-[11px] text-gray-400">
+                        <span>계약자: <span class="text-gray-600">${x.customer}</span></span>
+                        <span>계약일: <span class="text-gray-600">${x.date}</span></span>
+                    </div>
+                    <div class="mt-2 text-[11px] text-gray-500 bg-gray-50/50 p-2 rounded-lg border border-gray-100/50 truncate" title="${x.desc}">
+                        <span class="font-bold text-gray-400 mr-1">내용:</span>${x.desc}
+                    </div>
+                </div>`).join('') : '<div class="p-8 text-center text-gray-500 bg-gray-50 rounded-2xl">상세 내역이 없습니다.</div>';
+
+                body.outerHTML = `<div class="overflow-y-auto flex-grow bg-gray-50 md:bg-white p-4 md:p-0">
+                    <!-- 데스크탑 테이블 뷰 -->
+                    <div class="hidden md:block">
+                        <table class="w-full text-sm whitespace-nowrap">
+                            <thead class="bg-gray-100/80 sticky top-0 z-10 shadow-sm backdrop-blur-sm"><tr class="text-left text-gray-600">
+                                <th class="p-3 font-semibold text-center text-gray-800 bg-gray-100 border-r border-gray-200">모집인</th><th class="p-3 font-semibold">보험사</th><th class="p-3 font-semibold">증권번호</th><th class="p-3 font-semibold">상품명</th><th class="p-3 font-semibold">계약일</th><th class="p-3 text-right font-semibold">보험료</th><th class="p-3 text-center font-semibold">계약자</th><th class="p-3 text-right font-semibold">보험사시상</th><th class="p-3 text-right font-semibold">시상율(%)</th><th class="p-3 font-semibold">시상내용</th>
+                            </tr></thead>
+                            <tbody class="divide-y divide-gray-100">${desktopRows}</tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 모바일 카드 뷰 -->
+                    <div class="md:hidden flex flex-col">
+                        ${mobileCards}
+                    </div>
                 </div>`;
             } else {
                 body.innerHTML = `<div class="p-8 text-center text-red-500">오류: ${(d && d.message) || '데이터를 불러올 수 없습니다.'}</div>`;
