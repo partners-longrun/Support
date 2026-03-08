@@ -2755,11 +2755,21 @@
         };
 
         window.fetchAndShowLapsedContracts = async function () {
-            showLoading(true);
-            const res = await callApi('getLapsedContracts', state.user.staffId);
-            showLoading(false);
+            const cacheKey = `DATA_MY_LAPSED_${state.user.staffId}`;
+            let cached = sessionStorage.getItem(cacheKey);
+            let res = null;
+            if (cached) { try { res = JSON.parse(cached); } catch (e) { } }
 
-            if (res.error || !res.success) {
+            if (!res) {
+                showLoading(true);
+                res = await callApi('getLapsedContracts', state.user.staffId);
+                showLoading(false);
+                if (res && !res.error && res.success) {
+                    sessionStorage.setItem(cacheKey, JSON.stringify(res));
+                }
+            }
+
+            if (res && (res.error || !res.success)) {
                 alert('오류: ' + (res.message || '데이터를 불러오지 못했습니다.'));
             } else {
                 showLapsedContractsModal(res.list || [], "나의 ");
@@ -3031,6 +3041,16 @@
         // --- 8.5 Background Pre-fetcher ---
         function prefetchAllBackground() {
             if (!state.user || !state.currentMonth) return;
+
+            // 0. My Lapsed Contracts (for Home Retention Rate Card Popup)
+            const myLapsedCacheKey = `DATA_MY_LAPSED_${state.user.staffId}`;
+            if (!sessionStorage.getItem(myLapsedCacheKey)) {
+                callApi('getLapsedContracts', state.user.staffId).then(d => {
+                    if (d && !d.error && d.success) {
+                        sessionStorage.setItem(myLapsedCacheKey, JSON.stringify(d));
+                    }
+                });
+            }
 
             // 1. Reward Data
             if (!sessionStorage.getItem(`DATA_${state.user.staffId}_${state.currentMonth}_dashboard`)) {
