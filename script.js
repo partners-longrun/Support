@@ -11,7 +11,7 @@
                     throw new Error('현재 Google Gemini AI 서버가 일시적인 과부하 상태입니다. 잠시 후 다시 시도해 주세요.');
                 }
                 if (msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED')) {
-                    throw new Error(`AI 요청 허용량이 일시적으로 초과되었습니다 (${msg})`);
+                    throw new Error('AI 요청 허용량이 일시적으로 초과되었습니다. 잠시 후 다시 시도해 주세요.');
                 }
                 throw new Error(msg || 'AI 분석 응답에 실패했습니다.');
             }
@@ -472,15 +472,20 @@
                     const formatToPrettyHtml = (txt) => {
                         const lines = txt.split('\n').filter(l => l.trim().length > 0);
                         return lines.map(line => {
-                            const trimmed = line.trim();
-                            if (trimmed.startsWith('#') || trimmed.startsWith('[') && trimmed.includes(']')) {
-                                return `<h4 class="text-sm font-extrabold text-indigo-950 mt-2 mb-1 flex items-center gap-1.5"><span class="w-1.5 h-3.5 bg-indigo-600 rounded-full inline-block"></span>${trimmed.replace(/^#+\s*/, '')}</h4>`;
+                            let trimmed = line.trim();
+                            // 볼드 마크다운 파싱 (**텍스트** -> <strong>)
+                            const parseInline = (s) => s.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-gray-900">$1</strong>');
+                            
+                            // 제목/헤더 라인 (# 또는 [대괄호] 또는 **제목**)
+                            if (trimmed.startsWith('#') || (trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('**[') && trimmed.endsWith(']**'))) {
+                                const cleanTitle = trimmed.replace(/^#+\s*/, '').replace(/^\*\*|\*\*$/g, '');
+                                return `<h4 class="text-sm font-extrabold text-indigo-950 mt-2 mb-1 flex items-center gap-1.5"><span class="w-1.5 h-3.5 bg-indigo-600 rounded-full inline-block"></span>${cleanTitle}</h4>`;
                             }
                             if (trimmed.startsWith('*') || trimmed.startsWith('-') || /^\d+\./.test(trimmed)) {
                                 const clean = trimmed.replace(/^[\*\-\d\.]+\s*/, '');
-                                return `<div class="flex items-start gap-2 text-xs sm:text-sm text-slate-700 py-1 leading-relaxed"><span class="text-indigo-500 font-bold mt-0.5">•</span><span>${clean}</span></div>`;
+                                return `<div class="flex items-start gap-2 text-xs sm:text-sm text-slate-700 py-1 leading-relaxed"><span class="text-indigo-500 font-bold mt-0.5">•</span><span>${parseInline(clean)}</span></div>`;
                             }
-                            return `<p class="text-xs sm:text-sm text-slate-700 py-1 leading-relaxed">${trimmed}</p>`;
+                            return `<p class="text-xs sm:text-sm text-slate-700 py-1 leading-relaxed">${parseInline(trimmed)}</p>`;
                         }).join('');
                     };
 
@@ -4431,15 +4436,20 @@
                         const formatAnomalyHtml = (txt) => {
                             const lines = txt.split('\n').filter(l => l.trim().length > 0);
                             return lines.map(line => {
-                                const trimmed = line.trim();
-                                if (trimmed.startsWith('#') || trimmed.startsWith('[') && trimmed.includes(']')) {
-                                    return `<h4 class="text-sm font-extrabold text-amber-300 mt-2 mb-1 flex items-center gap-1.5"><span class="w-1.5 h-3.5 bg-amber-400 rounded-full inline-block"></span>${trimmed.replace(/^#+\s*/, '')}</h4>`;
+                                let trimmed = line.trim();
+                                // 볼드 마크다운 파싱 (**텍스트** -> <strong>)
+                                const parseInline = (s) => s.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-amber-200">$1</strong>');
+
+                                // 제목/헤더 라인 (# 또는 [대괄호] 또는 **제목**)
+                                if (trimmed.startsWith('#') || (trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('**[') && trimmed.endsWith(']**')) || (trimmed.startsWith('**') && trimmed.endsWith('**') && trimmed.length < 50)) {
+                                    const cleanTitle = trimmed.replace(/^#+\s*/, '').replace(/^\*\*|\*\*$/g, '');
+                                    return `<h4 class="text-sm font-extrabold text-amber-300 mt-2 mb-1 flex items-center gap-1.5"><span class="w-1.5 h-3.5 bg-amber-400 rounded-full inline-block"></span>${cleanTitle}</h4>`;
                                 }
                                 if (trimmed.startsWith('*') || trimmed.startsWith('-') || /^\d+\./.test(trimmed)) {
                                     const clean = trimmed.replace(/^[\*\-\d\.]+\s*/, '');
-                                    return `<div class="flex items-start gap-2 text-xs sm:text-sm text-slate-100 py-1 leading-relaxed"><span class="text-amber-300 font-bold mt-0.5">•</span><span>${clean}</span></div>`;
+                                    return `<div class="flex items-start gap-2 text-xs sm:text-sm text-slate-100 py-1 leading-relaxed"><span class="text-amber-300 font-bold mt-0.5">•</span><span>${parseInline(clean)}</span></div>`;
                                 }
-                                return `<p class="text-xs sm:text-sm text-slate-100 py-1 leading-relaxed">${trimmed}</p>`;
+                                return `<p class="text-xs sm:text-sm text-slate-100 py-1 leading-relaxed">${parseInline(trimmed)}</p>`;
                             }).join('');
                         };
 
