@@ -11,7 +11,7 @@
                     throw new Error('현재 Google Gemini AI 서버가 일시적인 과부하 상태입니다. 잠시 후 다시 시도해 주세요.');
                 }
                 if (msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED')) {
-                    throw new Error('AI 요청 허용량이 일시적으로 초과되었습니다. 약 1분 후 다시 시도해 주세요.');
+                    throw new Error(`AI 요청 허용량이 일시적으로 초과되었습니다 (${msg})`);
                 }
                 throw new Error(msg || 'AI 분석 응답에 실패했습니다.');
             }
