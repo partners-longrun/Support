@@ -325,7 +325,51 @@
             const isSolo = !isExecutive && !isManager;
 
             const cacheKey = `AI_BRIEFING_${state.user.staffId}_${state.currentMonth}_${isExecutive ? 'EXEC' : (isManager ? 'MGR' : 'SOLO')}`;
-            let cachedText = sessionStorage.getItem(cacheKey) || '';
+            let cachedText = '';
+            let cachedTime = '';
+
+            try {
+                const raw = localStorage.getItem(cacheKey);
+                if (raw) {
+                    if (raw.startsWith('{') && raw.includes('"text"')) {
+                        const parsed = JSON.parse(raw);
+                        cachedText = parsed.text || '';
+                        cachedTime = parsed.time || '';
+                    } else {
+                        cachedText = raw;
+                    }
+                }
+            } catch (e) {
+                cachedText = '';
+                cachedTime = '';
+            }
+
+            const getNowDateTimeStr = () => {
+                const d = new Date();
+                const pad = n => String(n).padStart(2, '0');
+                return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            };
+
+            // 보기 좋은 카드/단락 형태로 포맷팅 렌더링 함수
+            const formatToPrettyHtml = (txt) => {
+                const lines = txt.split('\n').filter(l => l.trim().length > 0);
+                return lines.map(line => {
+                    let trimmed = line.trim();
+                    // 볼드 마크다운 파싱 (**텍스트** -> <strong>)
+                    const parseInline = (s) => s.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-gray-900">$1</strong>');
+                    
+                    // 제목/헤더 라인 (# 또는 [대괄호] 또는 **제목**)
+                    if (trimmed.startsWith('#') || (trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('**[') && trimmed.endsWith(']**')) || (trimmed.startsWith('**') && trimmed.endsWith('**') && trimmed.length < 50)) {
+                        const cleanTitle = trimmed.replace(/^#+\s*/, '').replace(/^\*\*|\*\*$/g, '');
+                        return `<h4 class="text-sm font-extrabold text-indigo-950 mt-2 mb-1 flex items-center gap-1.5"><span class="w-1.5 h-3.5 bg-indigo-600 rounded-full inline-block"></span>${cleanTitle}</h4>`;
+                    }
+                    if (trimmed.startsWith('*') || trimmed.startsWith('-') || /^\d+\./.test(trimmed)) {
+                        const clean = trimmed.replace(/^[\*\-\d\.]+\s*/, '');
+                        return `<div class="flex items-start gap-2 text-xs sm:text-sm text-slate-700 py-1 leading-relaxed"><span class="text-indigo-500 font-bold mt-0.5">•</span><span>${parseInline(clean)}</span></div>`;
+                    }
+                    return `<p class="text-xs sm:text-sm text-slate-700 py-1 leading-relaxed">${parseInline(trimmed)}</p>`;
+                }).join('');
+            };
 
             // 권한별 타이틀 및 뱃지
             let title = '';
@@ -354,11 +398,12 @@
                                 <svg class="w-4 h-4 text-amber-200 animate-pulse" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
                             </div>
                             <div>
-                                <div class="flex items-center gap-2">
+                                <div class="flex flex-wrap items-center gap-2">
                                     <h3 class="font-bold text-sm sm:text-base text-gray-800 tracking-tight flex items-center gap-1.5">
                                         ${title}
                                     </h3>
                                     <span class="px-2 py-0.5 text-[11px] font-bold rounded-full bg-indigo-100 text-indigo-700">${badgeText}</span>
+                                    ${cachedTime ? `<span class="px-2 py-0.5 text-[10px] font-medium rounded-md bg-white/90 text-indigo-700 border border-indigo-200/80 shadow-2xs">분석일시: ${cachedTime}</span>` : ''}
                                 </div>
                                 <p class="text-xs text-gray-500 mt-0.5">${subtitle}</p>
                             </div>
@@ -412,7 +457,7 @@
 
             const generateBriefing = async (force = false) => {
                 if (!force && cachedText) {
-                    renderCard(`<div class="whitespace-pre-wrap leading-relaxed font-medium text-slate-800 text-sm bg-white/80 p-4 rounded-xl border border-indigo-50 shadow-xs">${cachedText}</div>`);
+                    renderCard(`<div class="leading-relaxed font-medium bg-white/90 p-4 sm:p-5 rounded-xl border border-indigo-100/80 shadow-xs space-y-1">${formatToPrettyHtml(cachedText)}</div>`);
                     return;
                 }
 
@@ -466,28 +511,13 @@
 
                     const aiText = await callGeminiAI(systemPrompt, userPrompt);
                     cachedText = aiText || 'AI 브리핑을 생성하지 못했습니다.';
-                    sessionStorage.setItem(cacheKey, cachedText);
+                    cachedTime = getNowDateTimeStr();
 
-                    // 보기 좋은 카드/단락 형태로 포맷팅 렌더링
-                    const formatToPrettyHtml = (txt) => {
-                        const lines = txt.split('\n').filter(l => l.trim().length > 0);
-                        return lines.map(line => {
-                            let trimmed = line.trim();
-                            // 볼드 마크다운 파싱 (**텍스트** -> <strong>)
-                            const parseInline = (s) => s.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-gray-900">$1</strong>');
-                            
-                            // 제목/헤더 라인 (# 또는 [대괄호] 또는 **제목**)
-                            if (trimmed.startsWith('#') || (trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('**[') && trimmed.endsWith(']**'))) {
-                                const cleanTitle = trimmed.replace(/^#+\s*/, '').replace(/^\*\*|\*\*$/g, '');
-                                return `<h4 class="text-sm font-extrabold text-indigo-950 mt-2 mb-1 flex items-center gap-1.5"><span class="w-1.5 h-3.5 bg-indigo-600 rounded-full inline-block"></span>${cleanTitle}</h4>`;
-                            }
-                            if (trimmed.startsWith('*') || trimmed.startsWith('-') || /^\d+\./.test(trimmed)) {
-                                const clean = trimmed.replace(/^[\*\-\d\.]+\s*/, '');
-                                return `<div class="flex items-start gap-2 text-xs sm:text-sm text-slate-700 py-1 leading-relaxed"><span class="text-indigo-500 font-bold mt-0.5">•</span><span>${parseInline(clean)}</span></div>`;
-                            }
-                            return `<p class="text-xs sm:text-sm text-slate-700 py-1 leading-relaxed">${parseInline(trimmed)}</p>`;
-                        }).join('');
-                    };
+                    try {
+                        localStorage.setItem(cacheKey, JSON.stringify({ text: cachedText, time: cachedTime }));
+                    } catch (e) {
+                        console.warn('localStorage 저장 실패', e);
+                    }
 
                     renderCard(`<div class="leading-relaxed font-medium bg-white/90 p-4 sm:p-5 rounded-xl border border-indigo-100/80 shadow-xs space-y-1">${formatToPrettyHtml(cachedText)}</div>`);
                 } catch (err) {
@@ -497,7 +527,7 @@
             };
 
             if (cachedText) {
-                renderCard(`<div class="whitespace-pre-wrap leading-relaxed font-medium text-slate-800 text-sm bg-white/80 p-4 rounded-xl border border-indigo-50 shadow-xs">${cachedText}</div>`);
+                renderCard(`<div class="leading-relaxed font-medium bg-white/90 p-4 sm:p-5 rounded-xl border border-indigo-100/80 shadow-xs space-y-1">${formatToPrettyHtml(cachedText)}</div>`);
             } else {
                 renderCard(`
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white/70 p-4 rounded-xl border border-indigo-50">
@@ -4346,7 +4376,50 @@
                 // Gemini AI 종합 진단 브리핑 영역 렌더링
                 const aiOverviewEl = div.querySelector('#anomaly-ai-overview-container');
                 const overviewCacheKey = `ANOMALY_AI_OVERVIEW_${state.user.staffId}_${state.currentMonth}`;
-                let overviewCachedText = sessionStorage.getItem(overviewCacheKey) || '';
+                let overviewCachedText = '';
+                let overviewCachedTime = '';
+
+                try {
+                    const raw = localStorage.getItem(overviewCacheKey);
+                    if (raw) {
+                        if (raw.startsWith('{') && raw.includes('"text"')) {
+                            const parsed = JSON.parse(raw);
+                            overviewCachedText = parsed.text || '';
+                            overviewCachedTime = parsed.time || '';
+                        } else {
+                            overviewCachedText = raw;
+                        }
+                    }
+                } catch (e) {
+                    overviewCachedText = '';
+                    overviewCachedTime = '';
+                }
+
+                const getAnomalyDateTimeStr = () => {
+                    const d = new Date();
+                    const pad = n => String(n).padStart(2, '0');
+                    return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                };
+
+                const formatAnomalyHtml = (txt) => {
+                    const lines = txt.split('\n').filter(l => l.trim().length > 0);
+                    return lines.map(line => {
+                        let trimmed = line.trim();
+                        // 볼드 마크다운 파싱 (**텍스트** -> <strong>)
+                        const parseInline = (s) => s.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-amber-200">$1</strong>');
+
+                        // 제목/헤더 라인 (# 또는 [대괄호] 또는 **제목**)
+                        if (trimmed.startsWith('#') || (trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('**[') && trimmed.endsWith(']**')) || (trimmed.startsWith('**') && trimmed.endsWith('**') && trimmed.length < 50)) {
+                            const cleanTitle = trimmed.replace(/^#+\s*/, '').replace(/^\*\*|\*\*$/g, '');
+                            return `<h4 class="text-sm font-extrabold text-amber-300 mt-2 mb-1 flex items-center gap-1.5"><span class="w-1.5 h-3.5 bg-amber-400 rounded-full inline-block"></span>${cleanTitle}</h4>`;
+                        }
+                        if (trimmed.startsWith('*') || trimmed.startsWith('-') || /^\d+\./.test(trimmed)) {
+                            const clean = trimmed.replace(/^[\*\-\d\.]+\s*/, '');
+                            return `<div class="flex items-start gap-2 text-xs sm:text-sm text-slate-100 py-1 leading-relaxed"><span class="text-amber-300 font-bold mt-0.5">•</span><span>${parseInline(clean)}</span></div>`;
+                        }
+                        return `<p class="text-xs sm:text-sm text-slate-100 py-1 leading-relaxed">${parseInline(trimmed)}</p>`;
+                    }).join('');
+                };
 
                 const renderAIOverview = (bodyContent, isRunning = false) => {
                     if (!aiOverviewEl) return;
@@ -4358,9 +4431,12 @@
                                     <svg class="w-4 h-4 text-white animate-pulse" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
                                 </div>
                                 <div>
-                                    <h3 class="font-bold text-base text-white flex items-center gap-2">
-                                        Gemini AI 종합 이상징후 진단 & 방어 전략
-                                    </h3>
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <h3 class="font-bold text-base text-white flex items-center gap-2">
+                                            Gemini AI 종합 이상징후 진단 & 방어 전략
+                                        </h3>
+                                        ${overviewCachedTime ? `<span class="px-2 py-0.5 text-[10px] font-medium rounded-md bg-white/15 text-amber-200 border border-white/20 shadow-2xs">분석일시: ${overviewCachedTime}</span>` : ''}
+                                    </div>
                                     <p class="text-xs text-indigo-200 mt-0.5">${scopeLabel} 위험군 집중 분석</p>
                                 </div>
                             </div>
@@ -4413,7 +4489,7 @@
 
                 const executeAIOverview = async (force = false) => {
                     if (!force && overviewCachedText) {
-                        renderAIOverview(`<div class="whitespace-pre-wrap leading-relaxed font-medium text-slate-100 text-sm bg-white/10 p-4 rounded-xl border border-white/10 backdrop-blur-sm">${overviewCachedText}</div>`);
+                        renderAIOverview(`<div class="leading-relaxed font-medium bg-white/10 p-4 sm:p-5 rounded-xl border border-white/10 backdrop-blur-sm space-y-1">${formatAnomalyHtml(overviewCachedText)}</div>`);
                         return;
                     }
 
@@ -4431,27 +4507,13 @@
 
                         const res = await callGeminiAI(sysPrompt, usrPrompt);
                         overviewCachedText = res || '진단 결과를 생성하지 못했습니다.';
-                        sessionStorage.setItem(overviewCacheKey, overviewCachedText);
+                        overviewCachedTime = getAnomalyDateTimeStr();
 
-                        const formatAnomalyHtml = (txt) => {
-                            const lines = txt.split('\n').filter(l => l.trim().length > 0);
-                            return lines.map(line => {
-                                let trimmed = line.trim();
-                                // 볼드 마크다운 파싱 (**텍스트** -> <strong>)
-                                const parseInline = (s) => s.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-amber-200">$1</strong>');
-
-                                // 제목/헤더 라인 (# 또는 [대괄호] 또는 **제목**)
-                                if (trimmed.startsWith('#') || (trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('**[') && trimmed.endsWith(']**')) || (trimmed.startsWith('**') && trimmed.endsWith('**') && trimmed.length < 50)) {
-                                    const cleanTitle = trimmed.replace(/^#+\s*/, '').replace(/^\*\*|\*\*$/g, '');
-                                    return `<h4 class="text-sm font-extrabold text-amber-300 mt-2 mb-1 flex items-center gap-1.5"><span class="w-1.5 h-3.5 bg-amber-400 rounded-full inline-block"></span>${cleanTitle}</h4>`;
-                                }
-                                if (trimmed.startsWith('*') || trimmed.startsWith('-') || /^\d+\./.test(trimmed)) {
-                                    const clean = trimmed.replace(/^[\*\-\d\.]+\s*/, '');
-                                    return `<div class="flex items-start gap-2 text-xs sm:text-sm text-slate-100 py-1 leading-relaxed"><span class="text-amber-300 font-bold mt-0.5">•</span><span>${parseInline(clean)}</span></div>`;
-                                }
-                                return `<p class="text-xs sm:text-sm text-slate-100 py-1 leading-relaxed">${parseInline(trimmed)}</p>`;
-                            }).join('');
-                        };
+                        try {
+                            localStorage.setItem(overviewCacheKey, JSON.stringify({ text: overviewCachedText, time: overviewCachedTime }));
+                        } catch (e) {
+                            console.warn('localStorage 저장 실패', e);
+                        }
 
                         renderAIOverview(`<div class="leading-relaxed font-medium bg-white/10 p-4 sm:p-5 rounded-xl border border-white/10 backdrop-blur-sm space-y-1">${formatAnomalyHtml(overviewCachedText)}</div>`);
                     } catch (err) {
@@ -4461,7 +4523,7 @@
                 };
 
                 if (overviewCachedText) {
-                    executeAIOverview(false);
+                    renderAIOverview(`<div class="leading-relaxed font-medium bg-white/10 p-4 sm:p-5 rounded-xl border border-white/10 backdrop-blur-sm space-y-1">${formatAnomalyHtml(overviewCachedText)}</div>`);
                 } else {
                     renderAIOverview(`
                     <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white/5 p-4 rounded-xl border border-white/10">
