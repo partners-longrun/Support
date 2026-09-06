@@ -6,7 +6,14 @@
         async function callGeminiAI(systemInstruction, userPrompt) {
             const res = await callApi('callGeminiApiBackend', systemInstruction, userPrompt);
             if (res && res.error) {
-                throw new Error(res.message || 'AI 분석 응답에 실패했습니다.');
+                const msg = res.message || '';
+                if (msg.includes('503') || msg.includes('high demand') || msg.includes('UNAVAILABLE')) {
+                    throw new Error('현재 Google Gemini AI 서버가 일시적인 과부하 상태입니다. 잠시 후 다시 시도해 주세요.');
+                }
+                if (msg.includes('429') || msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED')) {
+                    throw new Error('AI 요청 허용량이 일시적으로 초과되었습니다. 약 1분 후 다시 시도해 주세요.');
+                }
+                throw new Error(msg || 'AI 분석 응답에 실패했습니다.');
             }
             return res?.text || '';
         }
@@ -4200,100 +4207,121 @@
             </div>`;
 
             setTimeout(async () => {
-                let list = [];
-                // 1. 실효연체 데이터 로드 (권한별 격리 적용된 API)
-                try {
-                    const res = await callApi('getAdminLapseArrearsSummary', state.user.staffId, 'recruiter');
-                    if (res && res.success && res.list) {
-                        list = res.list;
-                    }
-                } catch (e) {
-                    console.error('getAdminLapseArrearsSummary error in anomaly view', e);
-                }
+                let scoredList = [];
 
-                // 2. 유지율 데이터 로드 (동일 권한 격리 적용)
-                let retentionMap = {};
-                try {
-                    const retRes = await callApi('getAdminRetentionSummary', state.user.staffId);
-                    if (retRes && retRes.success && retRes.list) {
-                        retRes.list.forEach(r => {
-                            retentionMap[String(r.id)] = r;
-                        });
-                    }
-                } catch (e) {
-                    console.error('getAdminRetentionSummary error in anomaly view', e);
-                }
-
-                // 3. 룰 기반 리스크 스코어링 및 결합
-                const scoredList = list.map(item => {
-                    const sid = String(item.id);
-                    const ret = retentionMap[sid] || {};
-                    const ret13 = ret.retention13Raw !== null && ret.retention13Raw !== undefined ? Number(ret.retention13Raw) : null;
-                    const ret25 = ret.retention25Raw !== null && ret.retention25Raw !== undefined ? Number(ret.retention25Raw) : null;
-
-                    const lapsed = Number(item.lapsed || 0);
-                    const arrears = Number(item.arrears || 0);
-                    const unpaid = Number(item.unpaid || 0);
-                    const unsubmitted = Number(item.unsubmitted || 0);
-
-                    let score = 0;
-                    const reasons = [];
-
-                    // 유지율 위험
-                    if (ret13 !== null && ret13 < 75) { score += 40; reasons.push(`13회차 유지율 극심(${ret13}%)`); }
-                    else if (ret13 !== null && ret13 < 85) { score += 20; reasons.push(`13회차 유지율 저조(${ret13}%)`); }
-
-                    if (ret25 !== null && ret25 < 70) { score += 20; reasons.push(`25회차 유지율 미달(${ret25}%)`); }
-
-                    // 실효 위험
-                    if (lapsed >= 5) { score += 40; reasons.push(`당월 실효 대량 발생(${lapsed}건)`); }
-                    else if (lapsed >= 2) { score += 25; reasons.push(`당월 실효 발생(${lapsed}건)`); }
-                    else if (lapsed === 1) { score += 10; reasons.push(`당월 실효 1건`); }
-
-                    // 연체 위험
-                    if (arrears >= 5) { score += 30; reasons.push(`당월 연체 누적(${arrears}건)`); }
-                    else if (arrears >= 2) { score += 15; reasons.push(`연체 계약 주의(${arrears}건)`); }
-
-                    // 확인서 미제출 (신계약 환수/수당 보류 직결)
-                    if (unsubmitted >= 3) { score += 30; reasons.push(`신계약 확인서 다수 미제출(${unsubmitted}건)`); }
-                    else if (unsubmitted >= 1) { score += 15; reasons.push(`확인서 미제출(${unsubmitted}건)`); }
-
-                    // 미납
-                    if (unpaid >= 4) { score += 15; reasons.push(`당월 미납 다수(${unpaid}건)`); }
-
-                    let riskLevel = 'SAFE';
-                    let badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                    let badgeLabel = '🟢 양호';
-                    if (score >= 60) {
-                        riskLevel = 'DANGER';
-                        badgeColor = 'bg-red-50 text-red-700 border-red-200';
-                        badgeLabel = '🔴 고위험';
-                    } else if (score >= 35) {
-                        riskLevel = 'WARNING';
-                        badgeColor = 'bg-orange-50 text-orange-700 border-orange-200';
-                        badgeLabel = '🟠 경고';
-                    } else if (score >= 15) {
-                        riskLevel = 'CAUTION';
-                        badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
-                        badgeLabel = '🟡 주의';
+                // 캐시 확인: 동일 월 데이터가 메모리에 존재하면 API 재호출 생략 (0초 즉시 로딩)
+                if (state.data.anomalyAdminData && state.data.anomalyAdminMonth === state.currentMonth) {
+                    scoredList = state.data.anomalyAdminData;
+                } else {
+                    let list = [];
+                    // 1. 실효연체 데이터 로드 (권한별 격리 적용된 API)
+                    try {
+                        const res = await callApi('getAdminLapseArrearsSummary', state.user.staffId, 'recruiter');
+                        if (res && res.success && res.list) {
+                            list = res.list;
+                        }
+                    } catch (e) {
+                        console.error('getAdminLapseArrearsSummary error in anomaly view', e);
                     }
 
-                    return {
-                        ...item,
-                        ret13,
-                        ret25,
-                        ret13Str: ret.retention13 || '-',
-                        ret25Str: ret.retention25 || '-',
-                        score,
-                        riskLevel,
-                        badgeColor,
-                        badgeLabel,
-                        reasons
+                    // 2. 유지율 데이터 로드 (동일 권한 격리 적용)
+                    let retentionMap = {};
+                    try {
+                        const retRes = await callApi('getAdminRetentionSummary', state.user.staffId);
+                        if (retRes && retRes.success && retRes.list) {
+                            retRes.list.forEach(r => {
+                                retentionMap[String(r.id)] = r;
+                            });
+                        }
+                    } catch (e) {
+                        console.error('getAdminRetentionSummary error in anomaly view', e);
+                    }
+
+                    // 3. 룰 기반 리스크 스코어링 및 결합
+                    const round1 = (val) => {
+                        if (val === null || val === undefined || isNaN(val)) return null;
+                        return Math.round(Number(val) * 10) / 10;
                     };
-                });
 
-                // 스코어 높은 순(위험도 높은 순)으로 정렬
-                scoredList.sort((a, b) => b.score - a.score);
+                    scoredList = list.map(item => {
+                        const sid = String(item.id);
+                        const ret = retentionMap[sid] || {};
+                        const raw13 = ret.retention13Raw !== null && ret.retention13Raw !== undefined ? Number(ret.retention13Raw) : null;
+                        const raw25 = ret.retention25Raw !== null && ret.retention25Raw !== undefined ? Number(ret.retention25Raw) : null;
+                        const ret13 = round1(raw13);
+                        const ret25 = round1(raw25);
+
+                        const lapsed = Number(item.lapsed || 0);
+                        const arrears = Number(item.arrears || 0);
+                        const unpaid = Number(item.unpaid || 0);
+                        const unsubmitted = Number(item.unsubmitted || 0);
+
+                        let score = 0;
+                        const reasons = [];
+
+                        // 유지율 위험 (소수점 첫째자리까지 표시)
+                        if (ret13 !== null && ret13 < 75) { score += 40; reasons.push(`13회차 유지율 극심(${ret13}%)`); }
+                        else if (ret13 !== null && ret13 < 85) { score += 20; reasons.push(`13회차 유지율 저조(${ret13}%)`); }
+
+                        if (ret25 !== null && ret25 < 70) { score += 20; reasons.push(`25회차 유지율 미달(${ret25}%)`); }
+
+                        // 실효 위험
+                        if (lapsed >= 5) { score += 40; reasons.push(`당월 실효 대량 발생(${lapsed}건)`); }
+                        else if (lapsed >= 2) { score += 25; reasons.push(`당월 실효 발생(${lapsed}건)`); }
+                        else if (lapsed === 1) { score += 10; reasons.push(`당월 실효 1건`); }
+
+                        // 연체 위험
+                        if (arrears >= 5) { score += 30; reasons.push(`당월 연체 누적(${arrears}건)`); }
+                        else if (arrears >= 2) { score += 15; reasons.push(`연체 계약 주의(${arrears}건)`); }
+
+                        // 확인서 미제출 (신계약 환수/수당 보류 직결)
+                        if (unsubmitted >= 3) { score += 30; reasons.push(`신계약 확인서 다수 미제출(${unsubmitted}건)`); }
+                        else if (unsubmitted >= 1) { score += 15; reasons.push(`확인서 미제출(${unsubmitted}건)`); }
+
+                        // 미납
+                        if (unpaid >= 4) { score += 15; reasons.push(`당월 미납 다수(${unpaid}건)`); }
+
+                        let riskLevel = 'SAFE';
+                        let badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                        let badgeLabel = '🟢 양호';
+                        if (score >= 60) {
+                            riskLevel = 'DANGER';
+                            badgeColor = 'bg-red-50 text-red-700 border-red-200';
+                            badgeLabel = '🔴 고위험';
+                        } else if (score >= 35) {
+                            riskLevel = 'WARNING';
+                            badgeColor = 'bg-orange-50 text-orange-700 border-orange-200';
+                            badgeLabel = '🟠 경고';
+                        } else if (score >= 15) {
+                            riskLevel = 'CAUTION';
+                            badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
+                            badgeLabel = '🟡 주의';
+                        }
+
+                        const ret13Display = ret13 !== null ? `${ret13}%` : (ret.retention13 || '-');
+                        const ret25Display = ret25 !== null ? `${ret25}%` : (ret.retention25 || '-');
+
+                        return {
+                            ...item,
+                            ret13,
+                            ret25,
+                            ret13Str: ret13Display,
+                            ret25Str: ret25Display,
+                            score,
+                            riskLevel,
+                            badgeColor,
+                            badgeLabel,
+                            reasons
+                        };
+                    });
+
+                    // 스코어 높은 순(위험도 높은 순)으로 정렬
+                    scoredList.sort((a, b) => b.score - a.score);
+
+                    // 캐시에 보관
+                    state.data.anomalyAdminData = scoredList;
+                    state.data.anomalyAdminMonth = state.currentMonth;
+                }
 
                 // 통계 카드 업데이트
                 const totalEl = div.querySelector('#anomaly-stat-total');
@@ -4341,6 +4369,10 @@
                                     <svg class="w-3.5 h-3.5 ${isRunning ? 'animate-spin' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                                     <span>${overviewCachedText ? '다시 진단' : '✨ AI 심층 진단 실행'}</span>
                                 </button>
+                                ${overviewCachedText ? `
+                                <button id="anomaly-overview-toggle" class="p-1.5 text-indigo-200 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer" title="접기/펼치기">
+                                    <svg id="anomaly-overview-toggle-icon" class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </button>` : ''}
                             </div>
                         </div>
                         <div id="anomaly-overview-body">
@@ -4350,6 +4382,10 @@
 
                     const runBtn = aiOverviewEl.querySelector('#anomaly-overview-run');
                     const copyBtn = aiOverviewEl.querySelector('#anomaly-overview-copy');
+                    const toggleBtn = aiOverviewEl.querySelector('#anomaly-overview-toggle');
+                    const bodyEl = aiOverviewEl.querySelector('#anomaly-overview-body');
+                    const toggleIcon = aiOverviewEl.querySelector('#anomaly-overview-toggle-icon');
+
                     if (runBtn) runBtn.onclick = () => executeAIOverview(true);
                     if (copyBtn) {
                         copyBtn.onclick = () => {
@@ -4360,6 +4396,12 @@
                                     copyBtn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg><span>복사</span>`;
                                 }, 2000);
                             });
+                        };
+                    }
+                    if (toggleBtn && bodyEl && toggleIcon) {
+                        toggleBtn.onclick = () => {
+                            bodyEl.classList.toggle('hidden');
+                            toggleIcon.classList.toggle('rotate-180');
                         };
                     }
                 };
